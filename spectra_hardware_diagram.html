@@ -1,0 +1,1566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Spectra Box - Hardware Architecture</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: #ffffff;
+  color: #1a1a1a;
+  min-height: 100vh;
+}
+
+/* Header */
+.header {
+  background: #ffffff;
+  border-bottom: 1px solid #e0e0e0;
+  padding: 16px 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.logo-icon {
+  width: 40px;
+  height: 40px;
+  background: #0066cc;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 16px;
+  color: #ffffff;
+}
+
+.logo-text {
+  font-weight: 600;
+  font-size: 18px;
+  letter-spacing: -0.3px;
+}
+
+.logo-text span {
+  color: #666;
+}
+
+.header-info {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  font-size: 14px;
+  color: #666;
+}
+
+/* Main Layout */
+.main-content {
+  display: flex;
+  min-height: calc(100vh - 73px);
+}
+
+/* Sidebar */
+.sidebar {
+  width: 260px;
+  background: #ffffff;
+  border-right: 1px solid #e0e0e0;
+  padding: 24px 0;
+  flex-shrink: 0;
+  overflow-y: auto;
+}
+
+.sidebar-section {
+  margin-bottom: 24px;
+}
+
+.sidebar-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #999;
+  padding: 0 20px;
+  margin-bottom: 12px;
+}
+
+.module-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.module-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
+  cursor: pointer;
+  transition: background 0.15s;
+  border-left: 3px solid transparent;
+}
+
+.module-item:hover {
+  background: #f8f8f8;
+}
+
+.module-item.active {
+  background: #e8f0ff;
+  border-left-color: #0066cc;
+}
+
+.module-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 600;
+  flex-shrink: 0;
+  background: #f5f5f5;
+  border: 1px solid #ddd;
+}
+
+.module-icon.mcu { background: #e8f0ff; border-color: #c0d0ff; color: #0066cc; }
+.module-icon.display { background: #e0fff0; border-color: #b0e0d0; color: #00a060; }
+.module-icon.nfc { background: #fff5e0; border-color: #ffe0b0; color: #d08000; }
+.module-icon.camera { background: #ffe0e0; border-color: #ffc0c0; color: #c02020; }
+.module-icon.audio { background: #e0ffe0; border-color: #b0e0b0; color: #30a030; }
+.module-icon.power { background: #fffde0; border-color: #e0e0b0; color: #b08000; }
+.module-icon.led { background: #f5e0ff; border-color: #e0c0ff; color: #8040b0; }
+.module-icon.button { background: #e0f0ff; border-color: #c0e0ff; color: #2080c0; }
+
+.module-name {
+  font-weight: 500;
+  font-size: 14px;
+  color: #1a1a1a;
+}
+
+.module-type {
+  font-size: 12px;
+  color: #888;
+}
+
+/* Diagram Area */
+.diagram-area {
+  flex: 1;
+  padding: 32px;
+  overflow: auto;
+  display: flex;
+  justify-content: center;
+}
+
+.diagram-wrapper {
+  background: #ffffff;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  width: fit-content;
+}
+
+.diagram-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #eee;
+}
+
+.diagram {
+  position: relative;
+  width: 1100px;
+  height: 720px;
+  background: #fafafa;
+  border: 1px solid #eee;
+  border-radius: 4px;
+}
+
+/* Module Blocks */
+.module-block {
+  position: absolute;
+  background: #ffffff;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+  overflow: hidden;
+}
+
+.module-block:hover {
+  border-color: #0066cc;
+  box-shadow: 0 2px 8px rgba(0,102,204,0.15);
+}
+
+.module-block.selected {
+  border-color: #0066cc;
+  border-width: 2px;
+}
+
+.module-block-header {
+  padding: 10px 14px;
+  background: #f8f8f8;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.module-block-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  background: #fff;
+  border: 1px solid #ddd;
+}
+
+.module-block-title {
+  font-weight: 600;
+  font-size: 12px;
+  color: #1a1a1a;
+}
+
+.module-block-subtitle {
+  font-size: 10px;
+  color: #888;
+}
+
+.module-block-body {
+  padding: 10px 14px;
+}
+
+.module-block-stat {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  padding: 3px 0;
+}
+
+.module-block-stat-label {
+  color: #666;
+}
+
+.module-block-stat-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: #333;
+}
+
+/* Pins */
+.pin {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background: #fff;
+  border: 2px solid #ccc;
+  border-radius: 50%;
+  cursor: pointer;
+  z-index: 10;
+  transition: all 0.15s;
+}
+
+.pin:hover {
+  background: #0066cc;
+  border-color: #0066cc;
+  transform: scale(1.3);
+}
+
+/* Info Panel */
+.info-panel {
+  position: fixed;
+  top: 90px;
+  right: 30px;
+  width: 400px;
+  background: #ffffff;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+  z-index: 200;
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
+  display: none;
+}
+
+.info-panel.visible {
+  display: block;
+}
+
+.info-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.info-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.info-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.info-subtitle {
+  font-size: 13px;
+  color: #666;
+}
+
+.info-close {
+  margin-left: auto;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: #f5f5f5;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 18px;
+  color: #666;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.info-close:hover {
+  background: #eee;
+}
+
+.info-content {
+  padding: 16px 20px;
+}
+
+.info-section {
+  margin-bottom: 20px;
+}
+
+.info-section:last-child {
+  margin-bottom: 0;
+}
+
+.info-section-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #999;
+  margin-bottom: 10px;
+}
+
+.info-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.info-table td {
+  padding: 6px 0;
+  font-size: 13px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.info-table td:first-child {
+  color: #666;
+  width: 40%;
+}
+
+.info-table td:last-child {
+  font-family: 'JetBrains Mono', monospace;
+  color: #333;
+}
+
+.connection-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: #fafafa;
+  border: 1px solid #eee;
+  border-radius: 4px;
+  margin-bottom: 6px;
+  font-size: 13px;
+}
+
+.connection-wire {
+  width: 20px;
+  height: 3px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.connection-info {
+  flex: 1;
+}
+
+.connection-name {
+  font-weight: 500;
+  font-size: 13px;
+}
+
+.connection-detail {
+  font-size: 11px;
+  color: #888;
+  font-family: 'JetBrains Mono', monospace;
+  margin-top: 2px;
+}
+
+.connection-to {
+  font-size: 11px;
+  color: #666;
+  background: #eee;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+.pin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.pin-table th {
+  text-align: left;
+  padding: 6px 8px;
+  background: #f8f8f8;
+  font-weight: 500;
+  font-size: 11px;
+  color: #666;
+  border-bottom: 1px solid #eee;
+}
+
+.pin-table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid #f5f5f5;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+}
+
+.pin-table td:last-child {
+  font-family: 'Inter', sans-serif;
+  color: #666;
+}
+
+.pin-number-cell {
+  width: 30px;
+  color: #999 !important;
+}
+
+/* Legend */
+.legend {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid #eee;
+}
+
+.legend-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #999;
+  margin-bottom: 10px;
+}
+
+.legend-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #666;
+}
+
+.legend-color {
+  width: 20px;
+  height: 3px;
+  border-radius: 2px;
+}
+
+/* Popup on Hover */
+.popup {
+  position: fixed;
+  background: #ffffff;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 12px 16px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+  z-index: 300;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+  max-width: 280px;
+}
+
+.popup.visible {
+  opacity: 1;
+}
+
+.popup-title {
+  font-weight: 600;
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+
+.popup-subtitle {
+  font-size: 11px;
+  color: #888;
+  margin-bottom: 8px;
+}
+
+.popup-detail {
+  font-size: 11px;
+  color: #666;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.popup-wire {
+  width: 12px;
+  height: 3px;
+  border-radius: 2px;
+}
+
+/* Wire SVG */
+.wire-svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.wire-path {
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.wire-path.i2c { stroke: #f0a030; }
+.wire-path.i2s { stroke: #30b040; }
+.wire-path.dvp { stroke: #d03030; }
+.wire-path.gpio { stroke: #9050d0; }
+.wire-path.power { stroke: #d04040; }
+.wire-path.power3 { stroke: #d0b020; }
+.wire-path.gnd { stroke: #808080; }
+
+.wire-label {
+  position: absolute;
+  font-size: 9px;
+  font-family: 'JetBrains Mono', monospace;
+  color: #666;
+  background: #fff;
+  padding: 2px 5px;
+  border-radius: 3px;
+  border: 1px solid #eee;
+  pointer-events: auto;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.wire-label:hover {
+  background: #0066cc;
+  color: #fff;
+  border-color: #0066cc;
+}
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="logo">
+    <div class="logo-icon">SB</div>
+    <div class="logo-text">Spectra<span>Box</span></div>
+  </div>
+  <div class="header-info">
+    <span>Hardware Architecture Diagram</span>
+    <span>|</span>
+    <span>ESP32-S3 Based UPI Payment System</span>
+  </div>
+</header>
+
+<div class="main-content">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-title">Core Modules</div>
+      <div class="module-list">
+        <div class="module-item" data-module="esp32" onclick="showModule('esp32')">
+          <div class="module-icon mcu">E</div>
+          <div>
+            <div class="module-name">ESP32-S3-WROOM-1</div>
+            <div class="module-type">Main Microcontroller</div>
+          </div>
+        </div>
+        <div class="module-item" data-module="oled" onclick="showModule('oled')">
+          <div class="module-icon display">O</div>
+          <div>
+            <div class="module-name">SSD1306 OLED</div>
+            <div class="module-type">128x64 Display</div>
+          </div>
+        </div>
+        <div class="module-item" data-module="nfc" onclick="showModule('nfc')">
+          <div class="module-icon nfc">N</div>
+          <div>
+            <div class="module-name">PN532 NFC</div>
+            <div class="module-type">RFID/NFC Reader</div>
+          </div>
+        </div>
+        <div class="module-item" data-module="camera" onclick="showModule('camera')">
+          <div class="module-icon camera">C</div>
+          <div>
+            <div class="module-name">OV2640 Camera</div>
+            <div class="module-type">2MP DVP Camera</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-title">Audio & Power</div>
+      <div class="module-list">
+        <div class="module-item" data-module="audio" onclick="showModule('audio')">
+          <div class="module-icon audio">A</div>
+          <div>
+            <div class="module-name">PAM8403</div>
+            <div class="module-type">Class-D Amplifier</div>
+          </div>
+        </div>
+        <div class="module-item" data-module="psu" onclick="showModule('psu')">
+          <div class="module-icon power">P</div>
+          <div>
+            <div class="module-name">HW-553 PSU</div>
+            <div class="module-type">5V/3A Regulator</div>
+          </div>
+        </div>
+        <div class="module-item" data-module="speaker" onclick="showModule('speaker')">
+          <div class="module-icon audio">S</div>
+          <div>
+            <div class="module-name">Speaker</div>
+            <div class="module-type">3W 4Ohm Driver</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-title">I/O & Feedback</div>
+      <div class="module-list">
+        <div class="module-item" data-module="leds" onclick="showModule('leds')">
+          <div class="module-icon led">L</div>
+          <div>
+            <div class="module-name">Status LEDs</div>
+            <div class="module-type">4-Color Indicator</div>
+          </div>
+        </div>
+        <div class="module-item" data-module="button" onclick="showModule('button')">
+          <div class="module-icon button">B</div>
+          <div>
+            <div class="module-name">NFC Button</div>
+            <div class="module-type">Tactile Switch</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Diagram Area -->
+  <div class="diagram-area">
+    <div class="diagram-wrapper">
+      <div class="diagram-title">System Block Diagram</div>
+      
+      <div class="diagram" id="diagram">
+
+        <!--
+          LAYOUT (all coordinates in px, canvas 1100×700):
+          ESP32-S3  : left=430, top=190, w=200, h=230  → right edge=630, left edge=430
+          
+          LEFT COLUMN (right-edge pins face ESP32):
+          OLED      : left=40,  top=100, w=160, h=120  → right=200
+          NFC       : left=40,  top=260, w=160, h=120  → right=200
+          PSU       : left=40,  top=430, w=160, h=130  → right=200
+          
+          RIGHT COLUMN (left-edge pins face ESP32):
+          Camera    : left=780, top=60,  w=165, h=150  → left=780
+          LEDs      : left=780, top=240, w=155, h=140  → left=780
+          Button    : left=780, top=410, w=155, h=110  → left=780
+          Audio     : left=780, top=545, w=155, h=120  → left=780 [moved below for clarity]
+          
+          BOTTOM:
+          Speaker   : left=595, top=570, w=135, h=100
+          Audio     : left=430, top=570, w=155, h=100  [below ESP32]
+
+          Power rails run horizontally at y=650,660,670 (5V, 3.3V, GND)
+
+          Wire routing uses strict orthogonal L-shaped or stepped paths.
+          All pin dots are at exact module boundaries.
+        -->
+
+        <!-- ═══════════════════════════════════════════════════ SVG WIRES -->
+        <svg class="wire-svg" viewBox="0 0 1100 700" style="z-index:1;">
+          <defs>
+            <!-- Arrow markers for signal direction -->
+            <marker id="arr-i2c"  markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#e09020"/></marker>
+            <marker id="arr-i2s"  markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#28a038"/></marker>
+            <marker id="arr-dvp"  markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#c02828"/></marker>
+            <marker id="arr-gpio" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#8040b0"/></marker>
+            <marker id="arr-5v"   markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#c83030"/></marker>
+            <marker id="arr-3v3"  markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#b09010"/></marker>
+            <marker id="arr-gnd"  markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#666"/></marker>
+            <marker id="arr-spk"  markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#28a038"/></marker>
+          </defs>
+
+          <!-- ───── POWER RAILS (horizontal, bottom) ─────────────────── -->
+          <!-- 5V Rail -->
+          <line x1="30" y1="646" x2="1070" y2="646" stroke="#d04040" stroke-width="2.5" stroke-dasharray="6,3"/>
+          <!-- 3.3V Rail -->
+          <line x1="30" y1="660" x2="1070" y2="660" stroke="#d0b020" stroke-width="2.5" stroke-dasharray="6,3"/>
+          <!-- GND Rail -->
+          <line x1="30" y1="674" x2="1070" y2="674" stroke="#888" stroke-width="2.5" stroke-dasharray="6,3"/>
+
+          <!-- Rail labels -->
+          <rect x="2" y="638" width="28" height="44" fill="#fafafa" rx="2"/>
+          <text x="16" y="649" text-anchor="middle" font-size="7.5" fill="#d04040" font-family="JetBrains Mono" font-weight="600">5V</text>
+          <text x="16" y="663" text-anchor="middle" font-size="7.5" fill="#b09010" font-family="JetBrains Mono" font-weight="600">3V3</text>
+          <text x="16" y="677" text-anchor="middle" font-size="7.5" fill="#888" font-family="JetBrains Mono" font-weight="600">GND</text>
+
+          <!-- ───── I2C BUS (shared: ESP32 ↔ OLED + NFC) ──────────────
+               ESP32 left-edge pins at x=430
+               I2C SDA pin: y=230 (top: 190 + 40)
+               I2C SCL pin: y=250 (top: 190 + 60)
+               Route: ESP32-left → bus column x=280 → branch up to OLED, down to NFC
+               OLED right edge x=200, SDA pin y=148, SCL pin y=168
+               NFC  right edge x=200, SDA pin y=308, SCL pin y=328
+          -->
+          <!-- I2C bus spine (vertical, x=285) -->
+          <line x1="285" y1="148" x2="285" y2="328" stroke="#f0a030" stroke-width="2" stroke-linejoin="round"/>
+          <!-- ESP32 → spine (SDA) -->
+          <line x1="430" y1="230" x2="285" y2="230" stroke="#f0a030" stroke-width="2" marker-end="url(#arr-i2c)"/>
+          <!-- ESP32 → spine (SCL) -->
+          <line x1="430" y1="250" x2="285" y2="250" stroke="#f0a030" stroke-width="2" marker-end="url(#arr-i2c)"/>
+          <!-- Spine → OLED (SDA) -->
+          <line x1="285" y1="148" x2="200" y2="148" stroke="#f0a030" stroke-width="2" marker-end="url(#arr-i2c)"/>
+          <!-- Spine → OLED (SCL) -->
+          <line x1="285" y1="168" x2="200" y2="168" stroke="#f0a030" stroke-width="2" marker-end="url(#arr-i2c)"/>
+          <!-- Spine → NFC (SDA) -->
+          <line x1="285" y1="308" x2="200" y2="308" stroke="#f0a030" stroke-width="2" marker-end="url(#arr-i2c)"/>
+          <!-- Spine → NFC (SCL) -->
+          <line x1="285" y1="328" x2="200" y2="328" stroke="#f0a030" stroke-width="2" marker-end="url(#arr-i2c)"/>
+          <!-- Spine → Camera SIOD/SIOC: extend right side from ESP32 right=630 to Camera left=780
+               Camera I2C pins at y=128 (top 60+68), y=148 (top 60+88) -->
+          <line x1="630" y1="230" x2="710" y2="230" stroke="#f0a030" stroke-width="2"/>
+          <line x1="710" y1="230" x2="710" y2="128" stroke="#f0a030" stroke-width="2"/>
+          <line x1="710" y1="128" x2="780" y2="128" stroke="#f0a030" stroke-width="2" marker-end="url(#arr-i2c)"/>
+          <line x1="710" y1="148" x2="780" y2="148" stroke="#f0a030" stroke-width="2" marker-end="url(#arr-i2c)"/>
+
+          <!-- I2C bus label -->
+          <rect x="256" y="200" width="58" height="14" fill="#fff8ee" rx="3" stroke="#f0a030" stroke-width="0.8"/>
+          <text x="285" y="210" text-anchor="middle" font-size="8.5" fill="#b07010" font-family="JetBrains Mono">I2C Bus</text>
+          <rect x="654" y="150" width="52" height="14" fill="#fff8ee" rx="3" stroke="#f0a030" stroke-width="0.8"/>
+          <text x="680" y="160" text-anchor="middle" font-size="8.5" fill="#b07010" font-family="JetBrains Mono">I2C-CAM</text>
+
+          <!-- ───── DVP CAMERA BUS (ESP32 right → Camera left) ─────────
+               ESP32 right edge x=630, DVP pins at y=200, y=218, y=236
+               Camera left edge x=780, DVP pins at y=68, y=88, y=108
+               Route: horizontal from ESP32, vertical jog, into camera
+          -->
+          <line x1="630" y1="200" x2="730" y2="200" stroke="#d03030" stroke-width="2"/>
+          <line x1="730" y1="200" x2="730" y2="68" stroke="#d03030" stroke-width="2"/>
+          <line x1="730" y1="68"  x2="780" y2="68"  stroke="#d03030" stroke-width="2" marker-end="url(#arr-dvp)"/>
+          <line x1="730" y1="88"  x2="780" y2="88"  stroke="#d03030" stroke-width="2" marker-end="url(#arr-dvp)"/>
+          <line x1="730" y1="108" x2="780" y2="108" stroke="#d03030" stroke-width="2" marker-end="url(#arr-dvp)"/>
+          <!-- DVP intermediate lines from ESP32 pins -->
+          <line x1="630" y1="218" x2="730" y2="218" stroke="#d03030" stroke-width="2"/>
+          <line x1="630" y1="236" x2="730" y2="236" stroke="#d03030" stroke-width="2"/>
+          <!-- DVP label -->
+          <rect x="640" y="215" width="80" height="14" fill="#fff0f0" rx="3" stroke="#d03030" stroke-width="0.8"/>
+          <text x="680" y="225" text-anchor="middle" font-size="8.5" fill="#a02020" font-family="JetBrains Mono">DVP 8-bit</text>
+
+          <!-- ───── GPIO → STATUS LEDs ──────────────────────────────────
+               ESP32 right-edge, GPIO pins at y=270, y=288, y=306, y=324
+               LEDs left edge x=780, pins at y=278, y=298, y=318, y=338
+               Route: straight horizontal at matching y, small offset
+          -->
+          <line x1="630" y1="270" x2="710" y2="270" stroke="#9050d0" stroke-width="2"/>
+          <line x1="710" y1="270" x2="710" y2="278" stroke="#9050d0" stroke-width="2"/>
+          <line x1="710" y1="278" x2="780" y2="278" stroke="#9050d0" stroke-width="2" marker-end="url(#arr-gpio)"/>
+          <line x1="630" y1="288" x2="712" y2="288" stroke="#9050d0" stroke-width="2"/>
+          <line x1="712" y1="288" x2="712" y2="298" stroke="#9050d0" stroke-width="2"/>
+          <line x1="712" y1="298" x2="780" y2="298" stroke="#9050d0" stroke-width="2" marker-end="url(#arr-gpio)"/>
+          <line x1="630" y1="306" x2="714" y2="306" stroke="#9050d0" stroke-width="2"/>
+          <line x1="714" y1="306" x2="714" y2="318" stroke="#9050d0" stroke-width="2"/>
+          <line x1="714" y1="318" x2="780" y2="318" stroke="#9050d0" stroke-width="2" marker-end="url(#arr-gpio)"/>
+          <line x1="630" y1="324" x2="716" y2="324" stroke="#9050d0" stroke-width="2"/>
+          <line x1="716" y1="324" x2="716" y2="338" stroke="#9050d0" stroke-width="2"/>
+          <line x1="716" y1="338" x2="780" y2="338" stroke="#9050d0" stroke-width="2" marker-end="url(#arr-gpio)"/>
+          <!-- GPIO label -->
+          <rect x="638" y="284" width="68" height="14" fill="#f5eeff" rx="3" stroke="#9050d0" stroke-width="0.8"/>
+          <text x="672" y="294" text-anchor="middle" font-size="8.5" fill="#6030a0" font-family="JetBrains Mono">GPIO Out</text>
+
+          <!-- ───── GPIO → BUTTON ───────────────────────────────────────
+               ESP32 right-edge at y=342 (GPIO34 pin)
+               Button left edge x=780, pin at y=448
+               Route: right → jog down → button
+          -->
+          <line x1="630" y1="342" x2="760" y2="342" stroke="#9050d0" stroke-width="2"/>
+          <line x1="760" y1="342" x2="760" y2="448" stroke="#9050d0" stroke-width="2"/>
+          <line x1="760" y1="448" x2="780" y2="448" stroke="#9050d0" stroke-width="2" marker-end="url(#arr-gpio)"/>
+          <!-- Button label -->
+          <rect x="638" y="336" width="64" height="14" fill="#f5eeff" rx="3" stroke="#9050d0" stroke-width="0.8"/>
+          <text x="670" y="346" text-anchor="middle" font-size="8.5" fill="#6030a0" font-family="JetBrains Mono">GPIO34</text>
+
+          <!-- ───── I2S → AUDIO AMP ─────────────────────────────────────
+               ESP32 left-edge I2S pins at y=270, y=288, y=306 (reuse right side if better)
+               Actually I2S comes from right side: y=360, y=378, y=396
+               Audio amp left edge x=780, I2S pins at y=583, y=603, y=623
+               Route: right from ESP32 → jog down to audio row
+          -->
+          <line x1="630" y1="360" x2="750" y2="360" stroke="#30b040" stroke-width="2"/>
+          <line x1="750" y1="360" x2="750" y2="583" stroke="#30b040" stroke-width="2"/>
+          <line x1="750" y1="583" x2="780" y2="583" stroke="#30b040" stroke-width="2" marker-end="url(#arr-i2s)"/>
+          <line x1="750" y1="603" x2="780" y2="603" stroke="#30b040" stroke-width="2" marker-end="url(#arr-i2s)"/>
+          <line x1="750" y1="623" x2="780" y2="623" stroke="#30b040" stroke-width="2" marker-end="url(#arr-i2s)"/>
+          <!-- I2S label -->
+          <rect x="638" y="354" width="60" height="14" fill="#efffef" rx="3" stroke="#30b040" stroke-width="0.8"/>
+          <text x="668" y="364" text-anchor="middle" font-size="8.5" fill="#208030" font-family="JetBrains Mono">I2S Bus</text>
+
+          <!-- ───── AUDIO AMP → SPEAKER ─────────────────────────────────
+               Audio right edge x=935 → speaker left edge x=780 (speaker is below audio)
+               Actually Audio block right side → speaker
+               Audio: left=780, w=155 → right=935, Speaker: left=595, top=545+
+               Route audio OUT right side → right → down → into speaker top
+               Speaker top-center pin: x=662, y=545
+          -->
+          <line x1="935" y1="595" x2="960" y2="595" stroke="#30b040" stroke-width="2"/>
+          <line x1="960" y1="595" x2="960" y2="530" stroke="#30b040" stroke-width="2"/>
+          <line x1="960" y1="530" x2="662" y2="530" stroke="#30b040" stroke-width="2"/>
+          <line x1="662" y1="530" x2="662" y2="545" stroke="#30b040" stroke-width="2" marker-end="url(#arr-spk)"/>
+          <!-- Speaker label -->
+          <rect x="694" y="522" width="60" height="14" fill="#efffef" rx="3" stroke="#30b040" stroke-width="0.8"/>
+          <text x="724" y="532" text-anchor="middle" font-size="8.5" fill="#208030" font-family="JetBrains Mono">SPK OUT</text>
+
+          <!-- ───── PSU → POWER RAILS ───────────────────────────────────
+               PSU right edge x=200, 5V pin y=478, 3.3V pin y=498
+               PSU bottom center → rail drops
+               5V: from PSU right x=200,y=478 → rail x=200,y=646
+               3.3V: from PSU right x=200,y=498 → rail y=660
+               GND: from PSU right x=200,y=518 → rail y=674
+          -->
+          <line x1="200" y1="478" x2="240" y2="478" stroke="#d04040" stroke-width="2"/>
+          <line x1="240" y1="478" x2="240" y2="646" stroke="#d04040" stroke-width="2" marker-end="url(#arr-5v)"/>
+          <line x1="200" y1="498" x2="260" y2="498" stroke="#d0b020" stroke-width="2"/>
+          <line x1="260" y1="498" x2="260" y2="660" stroke="#d0b020" stroke-width="2" marker-end="url(#arr-3v3)"/>
+          <line x1="200" y1="518" x2="280" y2="518" stroke="#888" stroke-width="2"/>
+          <line x1="280" y1="518" x2="280" y2="674" stroke="#888" stroke-width="2" marker-end="url(#arr-gnd)"/>
+
+          <!-- PSU → ESP32 (5V VIN: rail tap at x=530, up to ESP32 bottom y=420) -->
+          <line x1="530" y1="646" x2="530" y2="420" stroke="#d04040" stroke-width="2" marker-end="url(#arr-5v)"/>
+          <!-- PSU → ESP32 (3.3V: rail tap at x=550, up to ESP32 bottom y=420) -->
+          <line x1="550" y1="660" x2="550" y2="420" stroke="#d0b020" stroke-width="2" marker-end="url(#arr-3v3)"/>
+          <!-- GND ESP32 -->
+          <line x1="570" y1="674" x2="570" y2="420" stroke="#888" stroke-width="2" marker-end="url(#arr-gnd)"/>
+
+          <!-- Power tap labels -->
+          <rect x="534" y="490" width="32" height="14" fill="#fff8ee" rx="3" stroke="#d0b020" stroke-width="0.8"/>
+          <text x="550" y="500" text-anchor="middle" font-size="8" fill="#b09010" font-family="JetBrains Mono">3V3</text>
+          <rect x="513" y="503" width="16" height="14" fill="#fff0f0" rx="3" stroke="#d04040" stroke-width="0.8"/>
+          <text x="521" y="513" text-anchor="middle" font-size="8" fill="#c03030" font-family="JetBrains Mono">5V</text>
+
+          <!-- PSU → Audio 5V tap -->
+          <line x1="870" y1="646" x2="870" y2="568" stroke="#d04040" stroke-width="2" marker-end="url(#arr-5v)"/>
+          <!-- PSU label -->
+          <rect x="162" y="472" width="38" height="14" fill="#fff8ee" rx="3" stroke="#d04040" stroke-width="0.8"/>
+          <text x="181" y="482" text-anchor="middle" font-size="8" fill="#c03030" font-family="JetBrains Mono">5V Out</text>
+          <rect x="162" y="492" width="38" height="14" fill="#fffff0" rx="3" stroke="#d0b020" stroke-width="0.8"/>
+          <text x="181" y="502" text-anchor="middle" font-size="8" fill="#b09010" font-family="JetBrains Mono">3V3 Out</text>
+
+          <!-- GND drops from each module to GND rail -->
+          <!-- OLED GND -->
+          <line x1="120" y1="220" x2="120" y2="674" stroke="#888" stroke-width="1.5" stroke-dasharray="4,3"/>
+          <!-- NFC GND -->
+          <line x1="100" y1="380" x2="100" y2="674" stroke="#888" stroke-width="1.5" stroke-dasharray="4,3"/>
+          <!-- Camera GND -->
+          <line x1="860" y1="210" x2="860" y2="674" stroke="#888" stroke-width="1.5" stroke-dasharray="4,3"/>
+
+        </svg>
+        <!-- ═════════════════════════════════════════════════ END SVG WIRES -->
+
+        <!-- ─── ESP32-S3 (centre) ─── left=430 top=190 w=200 h=230 ─────── -->
+        <div class="module-block" id="mod-esp32"
+             style="left:430px; top:190px; width:200px;"
+             onmouseenter="showPopup('esp32',event)" onmouseleave="hidePopup()" onclick="showModule('esp32')">
+          <div class="module-block-header" style="background:#e8f0ff;">
+            <div class="module-block-icon" style="border-color:#0066cc;color:#0066cc;">E</div>
+            <div>
+              <div class="module-block-title">ESP32-S3-WROOM-1</div>
+              <div class="module-block-subtitle">Main Microcontroller</div>
+            </div>
+          </div>
+          <div class="module-block-body">
+            <div class="module-block-stat"><span class="module-block-stat-label">Clock</span><span class="module-block-stat-value">240MHz</span></div>
+            <div class="module-block-stat"><span class="module-block-stat-label">Flash</span><span class="module-block-stat-value">16MB</span></div>
+            <div class="module-block-stat"><span class="module-block-stat-label">PSRAM</span><span class="module-block-stat-value">8MB</span></div>
+            <div class="module-block-stat"><span class="module-block-stat-label">WiFi</span><span class="module-block-stat-value">802.11n</span></div>
+          </div>
+          <!-- LEFT PINS: I2C SDA(y=40), SCL(y=60) -->
+          <div class="pin" style="left:-5px; top:40px; background:#f0a030; border-color:#e09020;" title="GPIO21 I2C SDA"></div>
+          <div class="pin" style="left:-5px; top:60px; background:#f0a030; border-color:#e09020;" title="GPIO22 I2C SCL"></div>
+          <!-- RIGHT PINS: DVP(y=10,28,46), GPIO-LEDs(y=80,98,116,134), Button(y=152), I2S(y=170,188,206) -->
+          <div class="pin" style="right:-5px; top:10px;  background:#d03030; border-color:#c02020;" title="DVP D0-D7"></div>
+          <div class="pin" style="right:-5px; top:28px;  background:#d03030; border-color:#c02020;" title="DVP PCLK/VSYNC"></div>
+          <div class="pin" style="right:-5px; top:46px;  background:#d03030; border-color:#c02020;" title="DVP XCLK"></div>
+          <div class="pin" style="right:-5px; top:80px;  background:#9050d0; border-color:#8040c0;" title="GPIO2 LED Green"></div>
+          <div class="pin" style="right:-5px; top:98px;  background:#9050d0; border-color:#8040c0;" title="GPIO14 LED Blue"></div>
+          <div class="pin" style="right:-5px; top:116px; background:#9050d0; border-color:#8040c0;" title="GPIO19 LED Yellow"></div>
+          <div class="pin" style="right:-5px; top:134px; background:#9050d0; border-color:#8040c0;" title="GPIO20 LED Red"></div>
+          <div class="pin" style="right:-5px; top:152px; background:#9050d0; border-color:#8040c0;" title="GPIO34 Button"></div>
+          <div class="pin" style="right:-5px; top:170px; background:#30b040; border-color:#28a038;" title="GPIO26 I2S BCLK"></div>
+          <div class="pin" style="right:-5px; top:188px; background:#30b040; border-color:#28a038;" title="GPIO25 I2S LRCK"></div>
+          <div class="pin" style="right:-5px; top:206px; background:#30b040; border-color:#28a038;" title="GPIO27 I2S DIN"></div>
+          <!-- BOTTOM: power -->
+          <div class="pin" style="bottom:-5px; left:100px; background:#d04040; border-color:#c03030;" title="5V VIN"></div>
+          <div class="pin" style="bottom:-5px; left:120px; background:#d0b020; border-color:#c0a010;" title="3.3V"></div>
+          <div class="pin" style="bottom:-5px; left:140px; background:#888; border-color:#666;" title="GND"></div>
+        </div>
+
+        <!-- ─── OLED  left=40 top=100 w=160 ─────────────────────────── -->
+        <div class="module-block" id="mod-oled"
+             style="left:40px; top:100px; width:160px;"
+             onmouseenter="showPopup('oled',event)" onmouseleave="hidePopup()" onclick="showModule('oled')">
+          <div class="module-block-header" style="background:#e0fff0;">
+            <div class="module-block-icon" style="border-color:#00a060;color:#00a060;">O</div>
+            <div>
+              <div class="module-block-title">SSD1306 OLED</div>
+              <div class="module-block-subtitle">Display Module</div>
+            </div>
+          </div>
+          <div class="module-block-body">
+            <div class="module-block-stat"><span class="module-block-stat-label">Resolution</span><span class="module-block-stat-value">128×64</span></div>
+            <div class="module-block-stat"><span class="module-block-stat-label">Interface</span><span class="module-block-stat-value">I2C</span></div>
+            <div class="module-block-stat"><span class="module-block-stat-label">Address</span><span class="module-block-stat-value">0x3C</span></div>
+          </div>
+          <!-- RIGHT PINS: SDA(y=48), SCL(y=68) → face toward ESP32 -->
+          <div class="pin" style="right:-5px; top:48px; background:#f0a030; border-color:#e09020;" title="SDA"></div>
+          <div class="pin" style="right:-5px; top:68px; background:#f0a030; border-color:#e09020;" title="SCL"></div>
+          <!-- LEFT PINS: 3V3, GND -->
+          <div class="pin" style="left:-5px; top:48px; background:#d0b020; border-color:#c0a010;" title="3.3V"></div>
+          <div class="pin" style="left:-5px; top:68px; background:#888; border-color:#666;" title="GND"></div>
+        </div>
+
+        <!-- ─── NFC  left=40 top=260 w=160 ──────────────────────────── -->
+        <div class="module-block" id="mod-nfc"
+             style="left:40px; top:260px; width:160px;"
+             onmouseenter="showPopup('nfc',event)" onmouseleave="hidePopup()" onclick="showModule('nfc')">
+          <div class="module-block-header" style="background:#fff5e0;">
+            <div class="module-block-icon" style="border-color:#d08000;color:#d08000;">N</div>
+            <div>
+              <div class="module-block-title">PN532 NFC</div>
+              <div class="module-block-subtitle">RFID/NFC Reader</div>
+            </div>
+          </div>
+          <div class="module-block-body">
+            <div class="module-block-stat"><span class="module-block-stat-label">Frequency</span><span class="module-block-stat-value">13.56MHz</span></div>
+            <div class="module-block-stat"><span class="module-block-stat-label">Interface</span><span class="module-block-stat-value">I2C</span></div>
+            <div class="module-block-stat"><span class="module-block-stat-label">Range</span><span class="module-block-stat-value">5cm</span></div>
+          </div>
+          <!-- RIGHT PINS: SDA(y=48), SCL(y=68) -->
+          <div class="pin" style="right:-5px; top:48px; background:#f0a030; border-color:#e09020;" title="SDA"></div>
+          <div class="pin" style="right:-5px; top:68px; background:#f0a030; border-color:#e09020;" title="SCL"></div>
+          <!-- LEFT PINS: 3V3, GND -->
+          <div class="pin" style="left:-5px; top:48px; background:#d0b020; border-color:#c0a010;" title="3.3V"></div>
+          <div class="pin" style="left:-5px; top:68px; background:#888; border-color:#666;" title="GND"></div>
+        </div>
+
+        <!-- ─── PSU  left=40 top=430 w=160 ──────────────────────────── -->
+        <div class="module-block" id="mod-psu"
+             style="left:40px; top:430px; width:160px;"
+             onmouseenter="showPopup('psu',event)" onmouseleave="hidePopup()" onclick="showModule('psu')">
+          <div class="module-block-header" style="background:#fffde0;">
+            <div class="module-block-icon" style="border-color:#b08000;color:#b08000;">P</div>
+            <div>
+              <div class="module-block-title">HW-553 PSU</div>
+              <div class="module-block-subtitle">Power Supply Unit</div>
+            </div>
+          </div>
+          <div class="module-block-body">
+            <div class="module-block-stat"><span class="module-block-stat-label">Input</span><span class="module-block-stat-value">USB-C 5V</span></div>
+            <div class="module-block-stat"><span class="module-block-stat-label">5V Output</span><span class="module-block-stat-value">3A max</span></div>
+            <div class="module-block-stat"><span class="module-block-stat-label">3.3V Out</span><span class="module-block-stat-value">500mA</span></div>
+          </div>
+          <!-- RIGHT PINS: 5V(y=48), 3.3V(y=68), GND(y=88) -->
+          <div class="pin" style="right:-5px; top:48px; background:#d04040; border-color:#c03030;" title="5V Out"></div>
+          <div class="pin" style="right:-5px; top:68px; background:#d0b020; border-color:#c0a010;" title="3.3V Out"></div>
+          <div class="pin" style="right:-5px; top:88px; background:#888; border-color:#666;" title="GND"></div>
+          <!-- TOP: USB-C input indicator -->
+          <div class="pin" style="top:-5px; left:75px; background:#888; border-color:#555;" title="USB-C In"></div>
+        </div>
+
+        <!-- ─── CAMERA  left=780 top=60 w=165 ───────────────────────── -->
+        <div class="module-block" id="mod-camera"
+             style="left:780px; top:60px; width:165px;"
+             onmouseenter="showPopup('camera',event)" onmouseleave="hidePopup()" onclick="showModule('camera')">
+          <div class="module-block-header" style="background:#ffe0e0;">
+            <div class="module-block-icon" style="border-color:#c02020;color:#c02020;">C</div>
+            <div>
+              <div class="module-block-title">OV2640 Camera</div>
+              <div class="module-block-subtitle">2MP DVP Camera</div>
+            </div>
+          </div>
+          <div class="module-block-body">
+            <div class="module-block-stat"><span class="module-block-stat-label">Resolution</span><span class="module-block-stat-value">1600×1200</span></div>
+            <div class="module-block-stat"><span class="module-block-stat-label">Frame Rate</span><span class="module-block-stat-value">30fps</span></div>
+            <div class="module-block-stat"><span class="module-block-stat-label">Interface</span><span class="module-block-stat-value">DVP 8-bit</span></div>
+          </div>
+          <!-- LEFT PINS: DVP(y=8,28,48), I2C-CAM(y=68,88) -->
+          <div class="pin" style="left:-5px; top:8px;  background:#d03030; border-color:#c02020;" title="DVP D0-D7"></div>
+          <div class="pin" style="left:-5px; top:28px; background:#d03030; border-color:#c02020;" title="PCLK/VSYNC"></div>
+          <div class="pin" style="left:-5px; top:48px; background:#d03030; border-color:#c02020;" title="XCLK"></div>
+          <div class="pin" style="left:-5px; top:68px; background:#f0a030; border-color:#e09020;" title="SIOD"></div>
+          <div class="pin" style="left:-5px; top:88px; background:#f0a030; border-color:#e09020;" title="SIOC"></div>
+          <!-- RIGHT: GND -->
+          <div class="pin" style="right:-5px; top:68px; background:#888; border-color:#666;" title="GND"></div>
+        </div>
+
+        <!-- ─── STATUS LEDs  left=780 top=240 w=155 ─────────────────── -->
+        <div class="module-block" id="mod-leds"
+             style="left:780px; top:240px; width:155px;"
+             onmouseenter="showPopup('leds',event)" onmouseleave="hidePopup()" onclick="showModule('leds')">
+          <div class="module-block-header" style="background:#f5e0ff;">
+            <div class="module-block-icon" style="border-color:#8040b0;color:#8040b0;">L</div>
+            <div>
+              <div class="module-block-title">Status LEDs</div>
+              <div class="module-block-subtitle">Visual Feedback</div>
+            </div>
+          </div>
+          <div class="module-block-body">
+            <div style="display:flex;gap:8px;margin-bottom:8px;">
+              <div style="text-align:center;"><div style="width:13px;height:13px;background:#30b040;border-radius:50%;margin:0 auto;"></div><div style="font-size:9px;color:#888;margin-top:2px;">PAY</div></div>
+              <div style="text-align:center;"><div style="width:13px;height:13px;background:#2080d0;border-radius:50%;margin:0 auto;"></div><div style="font-size:9px;color:#888;margin-top:2px;">WIFI</div></div>
+              <div style="text-align:center;"><div style="width:13px;height:13px;background:#d0b020;border-radius:50%;margin:0 auto;"></div><div style="font-size:9px;color:#888;margin-top:2px;">NFC</div></div>
+              <div style="text-align:center;"><div style="width:13px;height:13px;background:#d03030;border-radius:50%;margin:0 auto;"></div><div style="font-size:9px;color:#888;margin-top:2px;">ALERT</div></div>
+            </div>
+            <div class="module-block-stat"><span class="module-block-stat-label">GPIO</span><span class="module-block-stat-value">2,14,19,20</span></div>
+            <div class="module-block-stat"><span class="module-block-stat-label">Series R</span><span class="module-block-stat-value">220 Ohm</span></div>
+          </div>
+          <!-- LEFT PINS: GPIO2(y=38), GPIO14(y=58), GPIO19(y=78), GPIO20(y=98) -->
+          <div class="pin" style="left:-5px; top:38px;  background:#9050d0; border-color:#8040c0;" title="GPIO2"></div>
+          <div class="pin" style="left:-5px; top:58px;  background:#9050d0; border-color:#8040c0;" title="GPIO14"></div>
+          <div class="pin" style="left:-5px; top:78px;  background:#9050d0; border-color:#8040c0;" title="GPIO19"></div>
+          <div class="pin" style="left:-5px; top:98px;  background:#9050d0; border-color:#8040c0;" title="GPIO20"></div>
+        </div>
+
+        <!-- ─── BUTTON  left=780 top=410 w=155 ──────────────────────── -->
+        <div class="module-block" id="mod-button"
+             style="left:780px; top:410px; width:155px;"
+             onmouseenter="showPopup('button',event)" onmouseleave="hidePopup()" onclick="showModule('button')">
+          <div class="module-block-header" style="background:#e0f0ff;">
+            <div class="module-block-icon" style="border-color:#2080c0;color:#2080c0;">B</div>
+            <div>
+              <div class="module-block-title">NFC Button</div>
+              <div class="module-block-subtitle">Tactile Switch</div>
+            </div>
+          </div>
+          <div class="module-block-body">
+            <div class="module-block-stat"><span class="module-block-stat-label">Type</span><span class="module-block-stat-value">6×6mm</span></div>
+            <div class="module-block-stat"><span class="module-block-stat-label">GPIO</span><span class="module-block-stat-value">34</span></div>
+            <div class="module-block-stat"><span class="module-block-stat-label">Pull-up</span><span class="module-block-stat-value">10k Ohm</span></div>
+          </div>
+          <!-- LEFT PINS: GPIO34(y=38), GND(y=58) -->
+          <div class="pin" style="left:-5px; top:38px; background:#9050d0; border-color:#8040c0;" title="GPIO34"></div>
+          <div class="pin" style="left:-5px; top:58px; background:#888; border-color:#666;" title="GND"></div>
+        </div>
+
+        <!-- ─── AUDIO AMP  left=780 top=545 w=155 ───────────────────── -->
+        <div class="module-block" id="mod-audio"
+             style="left:780px; top:545px; width:155px;"
+             onmouseenter="showPopup('audio',event)" onmouseleave="hidePopup()" onclick="showModule('audio')">
+          <div class="module-block-header" style="background:#e0ffe0;">
+            <div class="module-block-icon" style="border-color:#30a030;color:#30a030;">A</div>
+            <div>
+              <div class="module-block-title">PAM8403</div>
+              <div class="module-block-subtitle">Class-D Amplifier</div>
+            </div>
+          </div>
+          <div class="module-block-body">
+            <div class="module-block-stat"><span class="module-block-stat-label">Output</span><span class="module-block-stat-value">3W × 2</span></div>
+            <div class="module-block-stat"><span class="module-block-stat-label">Efficiency</span><span class="module-block-stat-value">&gt;90%</span></div>
+            <div class="module-block-stat"><span class="module-block-stat-label">Voltage</span><span class="module-block-stat-value">5V</span></div>
+          </div>
+          <!-- LEFT PINS: I2S BCLK(y=38), LRCK(y=58), DIN(y=78) -->
+          <div class="pin" style="left:-5px; top:38px; background:#30b040; border-color:#28a038;" title="I2S BCLK"></div>
+          <div class="pin" style="left:-5px; top:58px; background:#30b040; border-color:#28a038;" title="I2S LRCK"></div>
+          <div class="pin" style="left:-5px; top:78px; background:#30b040; border-color:#28a038;" title="I2S DIN"></div>
+          <!-- RIGHT PINS: SPK OUT(y=50), 5V(y=28), GND(y=70) -->
+          <div class="pin" style="right:-5px; top:50px; background:#30b040; border-color:#28a038;" title="Speaker Out"></div>
+          <div class="pin" style="right:-5px; top:28px; background:#d04040; border-color:#c03030;" title="5V VDD"></div>
+          <div class="pin" style="right:-5px; top:70px; background:#888; border-color:#666;" title="GND"></div>
+        </div>
+
+        <!-- ─── SPEAKER  left=595 top=545 w=135 ─────────────────────── -->
+        <div class="module-block" id="mod-speaker"
+             style="left:595px; top:545px; width:135px;"
+             onmouseenter="showPopup('speaker',event)" onmouseleave="hidePopup()" onclick="showModule('speaker')">
+          <div class="module-block-header" style="background:#e0ffe0;">
+            <div class="module-block-icon" style="border-color:#30a030;color:#30a030;">S</div>
+            <div>
+              <div class="module-block-title">Speaker</div>
+              <div class="module-block-subtitle">Audio Output</div>
+            </div>
+          </div>
+          <div class="module-block-body">
+            <div class="module-block-stat"><span class="module-block-stat-label">Power</span><span class="module-block-stat-value">3W</span></div>
+            <div class="module-block-stat"><span class="module-block-stat-label">Impedance</span><span class="module-block-stat-value">4 Ohm</span></div>
+          </div>
+          <!-- TOP PIN: audio in -->
+          <div class="pin" style="top:-5px; left:62px; background:#30b040; border-color:#28a038;" title="Audio In"></div>
+        </div>
+
+        <!-- ─── LEGEND ─────────────────────────────────────────────── -->
+        <div class="legend" style="position:absolute; bottom:8px; left:220px; right:220px;">
+          <div class="legend-title">Wire Color Legend</div>
+          <div class="legend-items">
+            <div class="legend-item"><div class="legend-color" style="background:#f0a030;"></div><span>I2C Bus</span></div>
+            <div class="legend-item"><div class="legend-color" style="background:#30b040;"></div><span>I2S Audio</span></div>
+            <div class="legend-item"><div class="legend-color" style="background:#d03030;"></div><span>DVP Camera</span></div>
+            <div class="legend-item"><div class="legend-color" style="background:#9050d0;"></div><span>GPIO</span></div>
+            <div class="legend-item"><div class="legend-color" style="background:#d04040;"></div><span>5V Power</span></div>
+            <div class="legend-item"><div class="legend-color" style="background:#d0b020;"></div><span>3.3V Power</span></div>
+            <div class="legend-item"><div class="legend-color" style="background:#808080;"></div><span>Ground</span></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Info Panel -->
+<div class="info-panel" id="infoPanel">
+  <div class="info-header" id="infoHeader">
+    <div class="info-icon" id="infoIcon"></div>
+    <div>
+      <div class="info-title" id="infoTitle"></div>
+      <div class="info-subtitle" id="infoSubtitle"></div>
+    </div>
+    <button class="info-close" onclick="closePanel()">x</button>
+  </div>
+  <div class="info-content" id="infoContent"></div>
+</div>
+
+<!-- Hover Popup -->
+<div class="popup" id="popup">
+  <div class="popup-title" id="popupTitle"></div>
+  <div class="popup-subtitle" id="popupSubtitle"></div>
+  <div class="popup-detail" id="popupDetail"></div>
+</div>
+
+<script>
+// Module Data
+const moduleData = {
+  esp32: {
+    name: 'ESP32-S3-WROOM-1',
+    subtitle: 'Main Microcontroller',
+    icon: 'E',
+    bgColor: '#e8f0ff',
+    iconColor: '#0066cc',
+    specs: [
+      ['Processor', 'Xtensa LX7 Dual Core @ 240MHz'],
+      ['Flash Memory', '16MB QSPI'],
+      ['PSRAM', '8MB QSPI'],
+      ['WiFi', '802.11 b/g/n 2.4GHz'],
+      ['Bluetooth', 'BLE 5.0'],
+    ],
+    connections: [
+      { name: 'I2C Bus', wire: '#f0a030', detail: 'GPIO21 (SDA), GPIO22 (SCL)', to: 'OLED, NFC' },
+      { name: 'I2S Audio', wire: '#30b040', detail: 'GPIO26 (BCLK), GPIO25 (LRCK), GPIO27 (DIN)', to: 'PAM8403' },
+      { name: 'DVP Camera', wire: '#d03030', detail: 'GPIO8-13, 16-17 (Data)', to: 'OV2640' },
+      { name: 'GPIO LEDs', wire: '#9050d0', detail: 'GPIO2, GPIO14, GPIO19, GPIO20', to: 'Status LEDs' },
+      { name: 'Button Input', wire: '#9050d0', detail: 'GPIO34 (10k pull-up)', to: 'NFC Button' },
+    ],
+    pins: [
+      ['1', 'GPIO21', 'I2C SDA'],
+      ['2', 'GPIO22', 'I2C SCL'],
+      ['3', 'GPIO26', 'I2S BCLK'],
+      ['4', 'GPIO25', 'I2S LRCK'],
+      ['5', 'GPIO27', 'I2S DIN'],
+      ['6', 'GND', 'Ground'],
+      ['7', '3.3V', 'Power Output'],
+      ['8', 'GPIO2', 'LED Green'],
+      ['9', 'GPIO14', 'LED Blue'],
+      ['10', 'GPIO19', 'LED Yellow'],
+      ['11', 'GPIO20', 'LED Red'],
+      ['12', 'GPIO34', 'Button'],
+      ['13', '5V', 'VIN'],
+      ['14', 'GPIO15', 'CAM XCLK'],
+    ]
+  },
+  oled: {
+    name: 'SSD1306 OLED Display',
+    subtitle: '128x64 I2C Monochrome',
+    icon: 'O',
+    bgColor: '#e0fff0',
+    iconColor: '#00a060',
+    specs: [
+      ['Resolution', '128 x 64 pixels'],
+      ['Display Size', '1.3 inch'],
+      ['Interface', 'I2C (400kHz)'],
+      ['I2C Address', '0x3C'],
+      ['Voltage', '1.65V - 3.3V'],
+    ],
+    connections: [
+      { name: 'I2C Data', wire: '#f0a030', detail: 'SDA to GPIO21', to: 'ESP32-S3' },
+      { name: 'I2C Clock', wire: '#f0a030', detail: 'SCL to GPIO22', to: 'ESP32-S3' },
+      { name: 'Power', wire: '#d0b020', detail: '3.3V from ESP32', to: 'ESP32-S3' },
+      { name: 'Ground', wire: '#808080', detail: 'Common GND', to: 'System GND' },
+    ],
+    pins: [
+      ['1', 'GND', 'Ground'],
+      ['2', 'VCC', '3.3V Power'],
+      ['3', 'SCL', 'I2C Clock'],
+      ['4', 'SDA', 'I2C Data'],
+    ]
+  },
+  nfc: {
+    name: 'PN532 NFC Module',
+    subtitle: 'RFID/NFC Reader 13.56MHz',
+    icon: 'N',
+    bgColor: '#fff5e0',
+    iconColor: '#d08000',
+    specs: [
+      ['Frequency', '13.56MHz ISM band'],
+      ['Interface', 'I2C'],
+      ['I2C Address', '0x48'],
+      ['Firmware', 'Version 1.6'],
+      ['Read Range', 'Up to 5cm'],
+    ],
+    connections: [
+      { name: 'I2C Data', wire: '#f0a030', detail: 'SDA shared with OLED', to: 'ESP32-S3' },
+      { name: 'I2C Clock', wire: '#f0a030', detail: 'SCL shared with OLED', to: 'ESP32-S3' },
+      { name: 'Power', wire: '#d0b020', detail: '3.3V from ESP32', to: 'ESP32-S3' },
+      { name: 'Ground', wire: '#808080', detail: 'Common GND', to: 'System GND' },
+    ],
+    pins: [
+      ['1', 'VCC', '3.3V Power'],
+      ['2', 'GND', 'Ground'],
+      ['3', 'SDA', 'I2C Data'],
+      ['4', 'SCL', 'I2C Clock'],
+      ['5', 'IRQ', 'Interrupt'],
+    ]
+  },
+  camera: {
+    name: 'OV2640 Camera Module',
+    subtitle: '2MP DVP Interface',
+    icon: 'C',
+    bgColor: '#ffe0e0',
+    iconColor: '#c02020',
+    specs: [
+      ['Image Sensor', '1/4" CMOS OV2640'],
+      ['Resolution', '1600x1200 (UXGA)'],
+      ['Frame Rate', '30fps max'],
+      ['FOV', '66 degrees'],
+      ['Interface', 'DVP 8-bit'],
+    ],
+    connections: [
+      { name: 'Pixel Data', wire: '#d03030', detail: 'D0-D7 to GPIO8-13, 16-17', to: 'ESP32-S3' },
+      { name: 'Pixel Clock', wire: '#d03030', detail: 'PCLK to GPIO13', to: 'ESP32-S3' },
+      { name: 'VSYNC', wire: '#d03030', detail: 'GPIO6', to: 'ESP32-S3' },
+      { name: 'XCLK', wire: '#d03030', detail: 'GPIO15 (20MHz)', to: 'ESP32-S3' },
+      { name: 'SIOD/SIOC', wire: '#f0a030', detail: 'Camera config I2C', to: 'ESP32-S3' },
+      { name: 'Power', wire: '#d0b020', detail: '3.3V from ESP32', to: 'ESP32-S3' },
+    ],
+    pins: [
+      ['1', '3.3V', 'Power'],
+      ['2', 'GND', 'Ground'],
+      ['3', 'XCLK', 'System Clock'],
+      ['5', 'SIOD', 'I2C Data'],
+      ['6', 'SIOC', 'I2C Clock'],
+      ['7-14', 'D0-D7', 'Pixel Bus'],
+      ['15', 'VSYNC', 'Vert Sync'],
+      ['16', 'HREF', 'Horiz Ref'],
+      ['17', 'PCLK', 'Pixel Clock'],
+    ]
+  },
+  audio: {
+    name: 'PAM8403 Amplifier',
+    subtitle: 'Class-D 3W Stereo',
+    icon: 'A',
+    bgColor: '#e0ffe0',
+    iconColor: '#30a030',
+    specs: [
+      ['Output Power', '3W x 2 (stereo)'],
+      ['Efficiency', '>90%'],
+      ['Voltage', '5V'],
+      ['THD+N', '<0.1%'],
+    ],
+    connections: [
+      { name: 'I2S BCLK', wire: '#30b040', detail: 'GPIO26', to: 'ESP32-S3' },
+      { name: 'I2S LRCK', wire: '#30b040', detail: 'GPIO25', to: 'ESP32-S3' },
+      { name: 'I2S DIN', wire: '#30b040', detail: 'GPIO27', to: 'ESP32-S3' },
+      { name: 'Power', wire: '#d04040', detail: '5V from PSU', to: 'HW-553 PSU' },
+      { name: 'Speaker Out', wire: '#30b040', detail: 'OUT_L, OUT_R', to: 'Speaker' },
+    ],
+    pins: [
+      ['1', 'VDD', 'Power (5V)'],
+      ['2', 'GND', 'Ground'],
+      ['3', 'DIN', 'Audio Data'],
+      ['4', 'LRCK', 'Word Select'],
+      ['5', 'BCLK', 'Bit Clock'],
+      ['6-7', 'OUTL+/-', 'Left Out'],
+      ['9-10', 'OUTR+/-', 'Right Out'],
+    ]
+  },
+  speaker: {
+    name: '40mm Speaker Driver',
+    subtitle: '3W 4Ohm Loudspeaker',
+    icon: 'S',
+    bgColor: '#e0ffe0',
+    iconColor: '#30a030',
+    specs: [
+      ['Power', '3W'],
+      ['Impedance', '4 Ohm'],
+      ['Size', '40mm diameter'],
+    ],
+    connections: [
+      { name: 'Audio In', wire: '#30b040', detail: 'From PAM8403 OUT', to: 'PAM8403' },
+    ],
+    pins: [
+      ['1', '+', 'Positive'],
+      ['2', '-', 'Negative'],
+    ]
+  },
+  psu: {
+    name: 'HW-553 Power Module',
+    subtitle: 'USB-C 5V/3A Regulator',
+    icon: 'P',
+    bgColor: '#fffde0',
+    iconColor: '#b08000',
+    specs: [
+      ['Input', 'USB-C 5V'],
+      ['5V Output', '3A max'],
+      ['3.3V Output', '500mA (AMS1117)'],
+      ['Protection', 'OVP, OCP'],
+    ],
+    connections: [
+      { name: '5V Rail', wire: '#d04040', detail: 'To ESP32 VIN, PAM8403', to: 'ESP32, Audio' },
+      { name: '3.3V Rail', wire: '#d0b020', detail: 'To ESP32, OLED, NFC, Camera', to: 'All 3.3V' },
+      { name: 'GND Bus', wire: '#808080', detail: 'All modules', to: 'All GND' },
+    ],
+    pins: [
+      ['1', 'VBUS+', 'USB 5V Input'],
+      ['2', 'GND', 'Input GND'],
+      ['3', '5V OUT', '5V @ 3A'],
+      ['4', '3.3V OUT', '3.3V @ 500mA'],
+      ['5', 'GND', 'Output GND'],
+    ]
+  },
+  leds: {
+    name: 'Status LED Array',
+    subtitle: '4-Color Visual Indicators',
+    icon: 'L',
+    bgColor: '#f5e0ff',
+    iconColor: '#8040b0',
+    specs: [
+      ['LED Green', 'GPIO2 - Payment'],
+      ['LED Blue', 'GPIO14 - WiFi'],
+      ['LED Yellow', 'GPIO19 - NFC'],
+      ['LED Red', 'GPIO20 - Alert'],
+      ['Series R', '220 Ohm each'],
+    ],
+    connections: [
+      { name: 'GPIO2', wire: '#9050d0', detail: 'Green LED', to: 'ESP32-S3' },
+      { name: 'GPIO14', wire: '#9050d0', detail: 'Blue LED', to: 'ESP32-S3' },
+      { name: 'GPIO19', wire: '#9050d0', detail: 'Yellow LED', to: 'ESP32-S3' },
+      { name: 'GPIO20', wire: '#9050d0', detail: 'Red LED', to: 'ESP32-S3' },
+      { name: 'Ground', wire: '#808080', detail: 'Common cathode', to: 'System GND' },
+    ],
+    pins: [
+      ['1', 'GPIO2', 'Green LED'],
+      ['2', 'GPIO14', 'Blue LED'],
+      ['3', 'GPIO19', 'Yellow LED'],
+      ['4', 'GPIO20', 'Red LED'],
+      ['5', 'GND', 'Common GND'],
+    ]
+  },
+  button: {
+    name: 'NFC Trigger Button',
+    subtitle: '6x6mm Tactile Switch',
+    icon: 'B',
+    bgColor: '#e0f0ff',
+    iconColor: '#2080c0',
+    specs: [
+      ['Type', 'Momentary NO'],
+      ['Size', '6mm x 6mm'],
+      ['GPIO', 'GPIO34 (input only)'],
+      ['Pull-up', '10k Ohm to 3.3V'],
+    ],
+    connections: [
+      { name: 'GPIO34', wire: '#9050d0', detail: 'Button input', to: 'ESP32-S3' },
+      { name: 'Ground', wire: '#808080', detail: 'Button contact', to: 'System GND' },
+    ],
+    pins: [
+      ['1', 'NO', 'Normally Open'],
+      ['2', 'COM', 'Common (GND)'],
+    ]
+  }
+};
+
+// Show module info panel
+function showModule(moduleId) {
+  const data = moduleData[moduleId];
+  if (!data) return;
+  
+  // Update active state
+  document.querySelectorAll('.module-item').forEach(item => {
+    item.classList.remove('active');
+    if (item.dataset.module === moduleId) {
+      item.classList.add('active');
+    }
+  });
+  
+  document.querySelectorAll('.module-block').forEach(block => {
+    block.classList.remove('selected');
+    if (block.id === 'mod-' + moduleId) {
+      block.classList.add('selected');
+    }
+  });
+  
+  // Build content
+  let content = `
+    <div class="info-section">
+      <div class="info-section-title">Specifications</div>
+      <table class="info-table">
+        ${data.specs.map(([label, value]) => `
+          <tr><td>${label}</td><td>${value}</td></tr>
+        `).join('')}
+      </table>
+    </div>
+    
+    <div class="info-section">
+      <div class="info-section-title">Connections</div>
+      ${data.connections.map(c => `
+        <div class="connection-item">
+          <div class="connection-wire" style="background: ${c.wire};"></div>
+          <div class="connection-info">
+            <div class="connection-name">${c.name}</div>
+            <div class="connection-detail">${c.detail}</div>
+          </div>
+          <div class="connection-to">${c.to}</div>
+        </div>
+      `).join('')}
+    </div>
+    
+    <div class="info-section">
+      <div class="info-section-title">Pinout</div>
+      <table class="pin-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Pin</th>
+            <th>Function</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${data.pins.map(([num, pin, fn]) => `
+            <tr>
+              <td class="pin-number-cell">${num}</td>
+              <td>${pin}</td>
+              <td>${fn}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+  
+  document.getElementById('infoIcon').style.background = data.bgColor;
+  document.getElementById('infoIcon').style.color = data.iconColor;
+  document.getElementById('infoIcon').textContent = data.icon;
+  document.getElementById('infoTitle').textContent = data.name;
+  document.getElementById('infoSubtitle').textContent = data.subtitle;
+  document.getElementById('infoContent').innerHTML = content;
+  document.getElementById('infoPanel').classList.add('visible');
+}
+
+// Close panel
+function closePanel() {
+  document.getElementById('infoPanel').classList.remove('visible');
+  document.querySelectorAll('.module-item').forEach(item => item.classList.remove('active'));
+  document.querySelectorAll('.module-block').forEach(block => block.classList.remove('selected'));
+}
+
+// Show popup on hover
+function showPopup(moduleId, event) {
+  const data = moduleData[moduleId];
+  if (!data) return;
+  
+  document.getElementById('popupTitle').textContent = data.name;
+  document.getElementById('popupSubtitle').textContent = data.subtitle;
+  document.getElementById('popupDetail').innerHTML = `
+    <div class="popup-wire" style="background: ${data.connections[0].wire};"></div>
+    ${data.connections[0].detail}
+  `;
+  
+  const popup = document.getElementById('popup');
+  popup.classList.add('visible');
+  
+  const rect = event.target.closest('.module-block').getBoundingClientRect();
+  popup.style.left = (rect.right + 15) + 'px';
+  popup.style.top = rect.top + 'px';
+  
+  // Keep popup in viewport
+  setTimeout(() => {
+    const popupRect = popup.getBoundingClientRect();
+    if (popupRect.right > window.innerWidth) {
+      popup.style.left = (rect.left - popupRect.width - 15) + 'px';
+    }
+    if (popupRect.bottom > window.innerHeight) {
+      popup.style.top = (window.innerHeight - popupRect.height - 20) + 'px';
+    }
+  }, 0);
+}
+
+// Hide popup
+function hidePopup() {
+  document.getElementById('popup').classList.remove('visible');
+}
+</script>
+
+</body>
+</html>

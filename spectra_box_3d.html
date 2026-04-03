@@ -1,0 +1,1806 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Spectra Box — 3D Simulation</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--acc:#6c63ff;--grn:#00e676;--yel:#ffd60a;--red:#ff4757;--cyn:#00d4ff;--bdr:#1e1e3a;--bg:#07070f;--sur:#0f0f1a;--card:#141428}
+body{background:var(--bg);color:#e0e0f0;font-family:'Syne',sans-serif;overflow:hidden;height:100vh;width:100vw}
+
+/* ── CANVAS ── */
+#cv{position:fixed;top:0;left:0;width:100vw;height:100vh;display:block}
+
+/* ── TOPBAR ── */
+#tb{position:fixed;top:0;left:0;right:0;height:50px;background:rgba(7,7,15,.95);border-bottom:1px solid var(--bdr);display:flex;align-items:center;padding:0 16px;gap:10px;z-index:50}
+.logo{font-size:18px;font-weight:800;letter-spacing:-.5px}.logo em{color:var(--acc);font-style:normal}
+.pill{background:rgba(108,99,255,.12);border:1px solid rgba(108,99,255,.25);color:var(--acc);font-size:10px;font-family:'JetBrains Mono',monospace;padding:2px 9px;border-radius:20px}
+.pill.g{background:rgba(0,230,118,.1);border-color:rgba(0,230,118,.25);color:var(--grn)}
+.sp{flex:1}
+.hb{background:rgba(255,255,255,.04);border:1px solid var(--bdr);color:#777;font-size:11px;font-family:'Syne',sans-serif;font-weight:700;padding:5px 12px;border-radius:7px;cursor:pointer;transition:all .2s}
+.hb:hover{background:rgba(108,99,255,.15);border-color:var(--acc);color:#fff}
+.hb.on{background:rgba(108,99,255,.2);border-color:var(--acc);color:var(--acc)}
+
+/* ── LEFT INSPECTOR ── */
+#insp{position:fixed;top:62px;left:14px;width:250px;background:rgba(7,7,15,.96);border:1px solid var(--bdr);border-radius:12px;overflow:hidden;z-index:50}
+#ih{padding:11px 14px 8px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;gap:8px}
+#cdot{width:9px;height:9px;border-radius:50%;background:var(--acc);flex-shrink:0}
+#ctit{font-size:13px;font-weight:700;flex:1}
+#cbdg{font-size:9px;font-family:'JetBrains Mono',monospace;padding:2px 7px;border-radius:8px;background:rgba(108,99,255,.15);color:var(--acc)}
+#ib{padding:12px 14px}
+#cdesc{font-size:11px;color:#555;line-height:1.7;margin-bottom:10px}
+#cspec{font-family:'JetBrains Mono',monospace;font-size:10px;line-height:2;color:#333}
+#cspec .k{color:#444}#cspec .v{color:#999}
+#sbtn{display:none;width:100%;padding:9px;margin-top:10px;border:none;border-radius:7px;font-family:'Syne',sans-serif;font-weight:700;font-size:12px;cursor:pointer;transition:all .2s}
+#sbtn:hover{filter:brightness(1.15);transform:translateY(-1px)}
+
+/* ── LCD ── */
+#lcd{position:fixed;bottom:60px;left:14px;width:250px;background:#001500;border:2px solid #003300;border-radius:9px;padding:9px 13px;z-index:50}
+#lt{font-size:9px;color:#336633;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:5px;font-family:'JetBrains Mono',monospace}
+#l1{font-size:13px;color:#00ff41;letter-spacing:.8px;margin-bottom:2px;min-height:17px;text-shadow:0 0 7px #00ff4188;font-family:'JetBrains Mono',monospace}
+#l2{font-size:11px;color:#00cc33;letter-spacing:.5px;min-height:15px;font-family:'JetBrains Mono',monospace}
+#l3{font-size:10px;color:#008822;margin-top:2px;min-height:13px;font-family:'JetBrains Mono',monospace}
+.cur{display:inline-block;width:7px;height:11px;background:#00ff41;animation:cb .8s step-end infinite;vertical-align:middle}
+@keyframes cb{50%{opacity:0}}
+
+/* ── EVENT FEED ── */
+#ef{position:fixed;top:62px;right:14px;width:240px;z-index:50}
+#efh{font-size:9px;font-family:'JetBrains Mono',monospace;letter-spacing:1.5px;color:#333;padding:0 3px 6px;display:flex;align-items:center;gap:6px}
+.ld{width:5px;height:5px;border-radius:50%;background:var(--grn);animation:lp 1.5s ease infinite}
+@keyframes lp{0%,100%{opacity:1}50%{opacity:.2}}
+.ev{background:rgba(7,7,15,.96);border:1px solid var(--bdr);border-radius:8px;padding:8px 11px;margin-bottom:6px;animation:ei .3s ease;border-left:2px solid var(--acc)}
+.ev.pay{border-left-color:var(--grn)}.ev.nfc{border-left-color:var(--yel)}.ev.blk{border-left-color:var(--red)}.ev.kht{border-left-color:#a78bfa}.ev.sys{border-left-color:var(--cyn)}
+@keyframes ei{from{opacity:0;transform:translateX(12px)}to{opacity:1;transform:translateX(0)}}
+.et{font-size:9px;font-family:'JetBrains Mono',monospace;letter-spacing:.8px;color:#444;margin-bottom:2px}
+.em{font-size:11px;color:#bbb;line-height:1.5}
+
+/* ── TRAY ── */
+#tray{position:fixed;bottom:0;left:0;right:0;height:58px;background:rgba(7,7,15,.96);border-top:1px solid var(--bdr);display:flex;align-items:center;padding:0 14px;gap:7px;overflow-x:auto;z-index:50}
+.tc{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.03);border:1px solid var(--bdr);border-radius:7px;padding:5px 10px;cursor:pointer;transition:all .2s;white-space:nowrap;flex-shrink:0}
+.tc:hover{border-color:var(--acc);background:rgba(108,99,255,.08)}
+.tc.sel{border-color:var(--acc);background:rgba(108,99,255,.14)}
+.tcd{width:6px;height:6px;border-radius:50%}
+.tcl{font-size:10px;font-weight:700;color:#555}
+.tc.sel .tcl{color:#ccc}
+.tsep{width:1px;height:24px;background:var(--bdr);flex-shrink:0;margin:0 3px}
+
+/* ── TOOLTIP ── */
+#tip{position:fixed;display:none;background:rgba(7,7,15,.97);border:1px solid var(--bdr);border-radius:7px;padding:4px 10px;font-size:10px;color:#aaa;font-family:'JetBrains Mono',monospace;white-space:nowrap;z-index:60;pointer-events:none}
+
+/* ── OVERLAYS ── */
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(5px);display:none;align-items:center;justify-content:center;z-index:100}
+.ov.show{display:flex}
+.pop{background:var(--sur);border:1px solid var(--bdr);border-radius:18px;padding:26px 24px;width:min(400px,92vw);max-height:86vh;overflow-y:auto;animation:pi .3s cubic-bezier(.4,0,.2,1);position:relative}
+@keyframes pi{from{opacity:0;transform:scale(.95) translateY(12px)}to{opacity:1;transform:scale(1) translateY(0)}}
+.pc{position:absolute;top:14px;right:16px;background:rgba(255,255,255,.06);border:1px solid var(--bdr);border-radius:6px;color:#555;font-size:11px;padding:3px 9px;cursor:pointer;font-family:'Syne',sans-serif}
+.pc:hover{color:#fff;border-color:#555}
+.pt{font-size:19px;font-weight:800;margin-bottom:4px}
+.ps{font-size:12px;color:#555;margin-bottom:18px;line-height:1.6}
+.psc{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:#444;font-family:'JetBrains Mono',monospace;margin-bottom:7px}
+
+/* QR frame */
+.qrf{display:inline-block;background:#fff;padding:10px;border-radius:7px;margin-bottom:8px}
+/* Action grid */
+.ag{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:16px}
+.ab{background:var(--card);border:1px solid var(--bdr);border-radius:11px;padding:20px 14px;text-align:center;cursor:pointer;transition:all .25s}
+.ab:hover{transform:translateY(-3px);border-color:var(--acc)}
+.ae{font-size:28px;margin-bottom:7px}
+.al{font-family:'Syne',sans-serif;font-weight:700;font-size:15px;margin-bottom:2px}
+.asu{font-size:11px;color:#555}
+.ab.pb .al{color:var(--grn)}.ab.kb .al{color:var(--acc)}
+/* Wallet */
+.wc{background:linear-gradient(135deg,#1e1b4b,#312e81);border-radius:12px;padding:16px 18px;margin-bottom:16px}
+.wcl{font-size:10px;letter-spacing:1.2px;color:rgba(255,255,255,.35);margin-bottom:4px}
+.wcb{font-family:'JetBrains Mono',monospace;font-size:30px;font-weight:600;letter-spacing:-1px}
+.wcn{font-size:12px;color:rgba(255,255,255,.4);margin-top:2px}
+/* Amount display */
+.ad{font-family:'JetBrains Mono',monospace;font-size:42px;font-weight:600;text-align:center;letter-spacing:-2px;margin:6px 0 3px;min-height:52px}
+.ad .rs{font-size:26px;opacity:.4;margin-right:3px}
+.ah{text-align:center;font-size:11px;color:#444;margin-bottom:16px}
+/* Numpad */
+.np{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-bottom:14px}
+.nb{background:var(--card);border:1px solid var(--bdr);border-radius:9px;padding:14px;text-align:center;cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:17px;font-weight:600;color:#ccc;transition:all .15s}
+.nb:hover{background:rgba(108,99,255,.1);border-color:var(--acc);color:#fff}
+.nb:active{transform:scale(.96)}
+.nb.z{grid-column:2}
+/* PIN */
+.pr{display:flex;gap:11px;justify-content:center;margin-bottom:16px}
+.pd{width:13px;height:13px;border-radius:50%;border:2px solid var(--bdr);transition:all .2s}
+.pd.f{background:var(--acc);border-color:var(--acc);box-shadow:0 0 9px rgba(108,99,255,.5)}
+/* Buttons */
+.cta{width:100%;padding:13px;border-radius:11px;font-family:'Syne',sans-serif;font-size:13px;font-weight:700;cursor:pointer;border:none;transition:all .2s;letter-spacing:.3px}
+.cta:hover{transform:translateY(-1px);filter:brightness(1.1)}
+.cta.pri{background:linear-gradient(135deg,var(--acc),#a78bfa);color:#fff}
+.cta.grn{background:linear-gradient(135deg,var(--grn),#00bcd4);color:#000}
+.cta.yel{background:linear-gradient(135deg,var(--yel),#ff8c00);color:#000;font-weight:800}
+.ctag{width:100%;padding:10px;border-radius:9px;font-family:'Syne',sans-serif;font-size:12px;cursor:pointer;background:none;border:1px solid var(--bdr);color:#555;margin-top:7px;transition:all .2s}
+.ctag:hover{border-color:var(--red);color:var(--red)}
+/* Steps */
+.stp{display:flex;gap:6px;margin-bottom:16px}
+.sd{height:3px;flex:1;border-radius:2px;background:var(--bdr);transition:background .3s}
+.sd.on{background:var(--acc)}
+/* Camera */
+#camv{width:100%;border-radius:9px;background:#000;display:none;max-height:200px;object-fit:cover;margin-bottom:11px}
+.lv{text-align:center;padding:9px;border-radius:8px;font-family:'Syne',sans-serif;font-weight:700;font-size:12px;margin-bottom:13px}
+.lv.chk{background:rgba(255,214,10,.1);color:var(--yel)}.lv.ok{background:rgba(0,230,118,.1);color:var(--grn)}.lv.fail{background:rgba(255,71,87,.1);color:var(--red)}
+/* Score */
+.sc{background:linear-gradient(135deg,#1e1b4b,#312e81);border-radius:11px;padding:13px 15px;margin-bottom:14px}
+.scl{font-size:9px;letter-spacing:1.2px;color:rgba(255,255,255,.3);text-transform:uppercase;font-family:'JetBrains Mono',monospace;margin-bottom:4px}
+.scn{font-family:'JetBrains Mono',monospace;font-size:34px;font-weight:600;letter-spacing:-1.5px}
+.scr{font-size:12px;font-weight:700;margin-top:2px}
+.scbb{background:rgba(255,255,255,.1);border-radius:3px;height:5px;margin:7px 0 3px}
+.scbf{height:100%;border-radius:3px;background:linear-gradient(90deg,#ef4444,#f59e0b,#10b981);transition:width 1.2s cubic-bezier(.23,1,.32,1)}
+.scrg{display:flex;justify-content:space-between;font-size:9px;color:rgba(255,255,255,.2);font-family:'JetBrains Mono',monospace}
+.scf{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-top:9px}
+.sff{background:rgba(255,255,255,.06);border-radius:6px;padding:7px;text-align:center}
+.sfv{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600}
+.sfl{font-size:9px;color:rgba(255,255,255,.3);letter-spacing:.5px;text-transform:uppercase;margin-top:2px}
+/* Loan */
+.le{background:rgba(0,230,118,.08);border:1px solid rgba(0,230,118,.2);border-radius:9px;padding:11px 13px;margin-bottom:13px}
+.let{font-size:12px;font-weight:700;color:var(--grn);margin-bottom:2px}
+.lea{font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:600;color:var(--grn)}
+.lno{background:rgba(255,255,255,.04);border:1px solid var(--bdr);border-radius:9px;padding:11px 13px;margin-bottom:13px;font-size:11px;color:#444}
+/* NFC visual */
+.nfcv{display:flex;align-items:center;justify-content:center;gap:18px;padding:14px 0}
+.nfcp{width:48px;height:72px;background:linear-gradient(180deg,#1a1a2e,#16213e);border:2px solid var(--bdr);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:20px}
+.nfcr{display:flex;flex-direction:column;gap:4px;align-items:center}
+.nfcri{border:2px solid var(--acc);border-radius:50%;opacity:0}
+.nfcb{width:60px;height:60px;background:linear-gradient(135deg,var(--card),#1e1b4b);border:2px solid rgba(108,99,255,.3);border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:24px}
+.anim .nfcri{animation:np 1.4s ease-out infinite}
+.anim .nfcri:nth-child(2){animation-delay:.2s}.anim .nfcri:nth-child(3){animation-delay:.4s}
+@keyframes np{0%{opacity:.9;transform:scale(.8)}100%{opacity:0;transform:scale(1.3)}}
+/* Success */
+.suc{text-align:center;padding:18px 0}
+.sui{font-size:48px;margin-bottom:10px;animation:bn .5s ease}
+@keyframes bn{0%,100%{transform:scale(1)}50%{transform:scale(1.2)}}
+.sut{font-size:18px;font-weight:800;margin-bottom:5px}
+.sum{font-size:12px;color:#666;line-height:1.6}
+/* Khata */
+.kc{background:var(--card);border:1px solid var(--bdr);border-radius:11px;padding:13px 15px;margin-bottom:15px}
+.kcl{font-size:10px;letter-spacing:1px;text-transform:uppercase;color:#444;font-family:'JetBrains Mono',monospace;margin-bottom:4px}
+.kcb{font-family:'JetBrains Mono',monospace;font-size:26px;font-weight:600;color:var(--red)}
+.kcs{font-size:11px;color:#555;margin-top:2px}
+/* Toast */
+.toast{position:fixed;bottom:70px;left:50%;transform:translateX(-50%) translateY(50px);background:var(--sur);border:1px solid var(--bdr);border-radius:12px;padding:11px 18px;z-index:200;display:flex;align-items:center;gap:9px;min-width:250px;transition:transform .35s cubic-bezier(.4,0,.2,1);box-shadow:0 14px 35px rgba(0,0,0,.5);pointer-events:none}
+.toast.sh{transform:translateX(-50%) translateY(0)}
+.ti{font-size:18px}.tt{font-size:12px;font-weight:600}
+</style>
+</head>
+<body>
+<canvas id="cv"></canvas>
+
+<!-- TOPBAR -->
+<div id="tb">
+  <div><div class="logo">Spectra<em>Box</em></div></div>
+  <div class="pill">ESP32-S3</div>
+  <div class="pill g" id="sp">● LIVE</div>
+  <div class="sp"></div>
+  <button class="hb" id="bexp" onclick="toggleExplode()">💥 Explode</button>
+  <button class="hb" id="bwire" onclick="toggleWires()">〰 Wiring</button>
+  <button class="hb" id="brot" onclick="toggleRot()">↻ Rotate</button>
+  <button class="hb" id="bxr" onclick="toggleXray()">◈ X-Ray</button>
+  <button class="hb" onclick="resetCam()">⌂ Reset</button>
+  <button class="hb" onclick="openWalletPanel()">💰 Wallet</button>
+</div>
+
+<!-- INSPECTOR -->
+<div id="insp">
+  <div id="ih"><div id="cdot"></div><div id="ctit">Click a Component</div><div id="cbdg">SELECT</div></div>
+  <div id="ib">
+    <div id="cdesc">Click any component on the 3D model or the tray below. Functional modules (NFC, QR, Camera) open live simulation popups.</div>
+    <div id="cspec"></div>
+    <button id="sbtn" onclick="simSel()">▶ Simulate</button>
+  </div>
+</div>
+
+<!-- LCD -->
+<div id="lcd">
+  <div id="lt">SSD1306 OLED — Live Output</div>
+  <div id="l1">SPECTRA BOX v1.0 <span class="cur"></span></div>
+  <div id="l2">System ready</div>
+  <div id="l3">lavish@spectra</div>
+</div>
+
+<!-- EVENT FEED -->
+<div id="ef">
+  <div id="efh"><div class="ld"></div>LIVE EVENTS</div>
+  <div id="evf"></div>
+</div>
+
+<!-- TRAY -->
+<div id="tray">
+  <div class="tc sel" id="tc-box" onclick="sel('box')"><div class="tcd" style="background:#6c63ff"></div><div class="tcl">Enclosure</div></div>
+  <div class="tsep"></div>
+  <div class="tc" id="tc-mcu" onclick="sel('mcu')"><div class="tcd" style="background:#6c63ff"></div><div class="tcl">ESP32-S3</div></div>
+  <div class="tc" id="tc-oled" onclick="sel('oled')"><div class="tcd" style="background:#00d4ff"></div><div class="tcl">OLED</div></div>
+  <div class="tc" id="tc-qr" onclick="sel('qr')"><div class="tcd" style="background:#ff8c00"></div><div class="tcl">Static QR</div></div>
+  <div class="tc" id="tc-nfc" onclick="sel('nfc')"><div class="tcd" style="background:#ffd60a"></div><div class="tcl">NFC PN532</div></div>
+  <div class="tc" id="tc-cam" onclick="sel('cam')"><div class="tcd" style="background:#ff4757"></div><div class="tcl">Camera</div></div>
+  <div class="tc" id="tc-spk" onclick="sel('spk')"><div class="tcd" style="background:#00e676"></div><div class="tcl">Speaker</div></div>
+  <div class="tc" id="tc-btn" onclick="sel('btn')"><div class="tcd" style="background:#a78bfa"></div><div class="tcl">NFC Button</div></div>
+  <div class="tc" id="tc-psu" onclick="sel('psu')"><div class="tcd" style="background:#ff6bcb"></div><div class="tcl">PSU 5V/3A</div></div>
+  <div class="tsep"></div>
+  <div class="tc" id="tc-wifi" onclick="sel('wifi')"><div class="tcd" style="background:#38bdf8"></div><div class="tcl">WiFi</div></div>
+  <div class="tc" id="tc-pcb" onclick="sel('pcb')"><div class="tcd" style="background:#2ecc71"></div><div class="tcl">PCB</div></div>
+</div>
+
+<div id="tip"></div>
+<div class="toast" id="toast" style="display:none"><div class="ti" id="ti">✅</div><div class="tt" id="tt"></div></div>
+
+<!-- NAV BAR -->
+<div id="nav-bar" style="position:fixed;bottom:58px;left:50%;transform:translateX(-50%);background:rgba(7,7,15,.97);border:1px solid #1e1e3a;border-radius:10px;padding:6px 14px;display:flex;gap:8px;z-index:100">
+  <a href="spectra-user.html" style="color:#6c63ff;font-size:11px;font-family:'Syne',sans-serif;font-weight:700;text-decoration:none;padding:4px 10px;border-radius:6px;transition:all .2s" onmouseover="this.style.background='rgba(108,99,255,.15)'" onmouseout="this.style.background='transparent'">👤 User</a>
+  <a href="spectra-business.html" style="color:#4f8ef7;font-size:11px;font-family:'Syne',sans-serif;font-weight:700;text-decoration:none;padding:4px 10px;border-radius:6px;transition:all .2s" onmouseover="this.style.background='rgba(79,142,247,.15)'" onmouseout="this.style.background='transparent'">📊 Business</a>
+  <span style="color:#333;font-size:11px;padding:4px 6px">⬡ 3D Sim</span>
+</div>
+
+<!-- ═══ OVERLAY: UPI QR PANEL — Pay or Add flow ═══ -->
+<div class="ov" id="ov-qr">
+  <div class="pop" style="max-width:380px">
+    <button class="pc" onclick="qrClose()">✕ Close</button>
+
+    <!-- ── QR-S0: Choose action ── -->
+    <div id="qr-s0">
+      <div class="pt" style="text-align:center">📲 UPI QR — Rahul's Kirana</div>
+      <div class="ps" style="text-align:center;margin-bottom:18px">rahul@spectra · What would you like to do?</div>
+      <!-- QR visual small -->
+      <div style="text-align:center;margin-bottom:18px">
+        <div style="background:#fff;border-radius:12px;padding:12px;display:inline-block">
+          <svg width="110" height="110" viewBox="0 0 180 180" xmlns="http://www.w3.org/2000/svg">
+            <rect width="180" height="180" fill="white"/>
+            <rect x="10" y="10" width="50" height="50" fill="#1a1a2e" rx="4"/><rect x="17" y="17" width="36" height="36" fill="white" rx="2"/><rect x="23" y="23" width="24" height="24" fill="#1a1a2e" rx="2"/>
+            <rect x="120" y="10" width="50" height="50" fill="#1a1a2e" rx="4"/><rect x="127" y="17" width="36" height="36" fill="white" rx="2"/><rect x="133" y="23" width="24" height="24" fill="#1a1a2e" rx="2"/>
+            <rect x="10" y="120" width="50" height="50" fill="#1a1a2e" rx="4"/><rect x="17" y="127" width="36" height="36" fill="white" rx="2"/><rect x="23" y="133" width="24" height="24" fill="#1a1a2e" rx="2"/>
+            <rect x="70" y="10" width="7" height="7" fill="#1a1a2e"/><rect x="82" y="10" width="7" height="7" fill="#1a1a2e"/><rect x="94" y="10" width="7" height="7" fill="#1a1a2e"/>
+            <rect x="10" y="70" width="7" height="7" fill="#1a1a2e"/><rect x="34" y="82" width="7" height="7" fill="#1a1a2e"/><rect x="70" y="70" width="7" height="7" fill="#1a1a2e"/>
+            <rect x="94" y="82" width="7" height="7" fill="#1a1a2e"/><rect x="82" y="94" width="7" height="7" fill="#1a1a2e"/><rect x="120" y="70" width="7" height="7" fill="#1a1a2e"/>
+            <rect x="70" y="120" width="7" height="7" fill="#1a1a2e"/><rect x="94" y="132" width="7" height="7" fill="#1a1a2e"/><rect x="130" y="144" width="7" height="7" fill="#1a1a2e"/>
+            <rect x="78" y="78" width="24" height="24" fill="white" rx="4"/>
+            <text x="90" y="95" text-anchor="middle" fill="#00baf2" font-size="14" font-weight="900" font-family="Arial">P</text>
+          </svg>
+        </div>
+      </div>
+      <!-- Wallet balance -->
+      <div class="wc" style="margin-bottom:16px"><div class="wcl">YOUR WALLET</div><div class="wcb" id="qr-wb">5,000</div><div class="wcn">Lavish Kumar</div></div>
+      <!-- Action choice -->
+      <div class="ag">
+        <div class="ab pb" onclick="qrChoose('pay')"><div class="ae">💸</div><div class="al">Pay</div><div class="asu">Send money to merchant</div></div>
+        <div class="ab kb" onclick="qrChoose('add')"><div class="ae">📒</div><div class="al">Add Khata</div><div class="asu">Record udhaar (credit)</div></div>
+      </div>
+    </div>
+
+    <!-- ── QR-S1: Enter amount ── -->
+    <div id="qr-s1" style="display:none">
+      <div class="stp"><div class="sd on"></div><div class="sd" id="qr-p2"></div><div class="sd" id="qr-p3"></div></div>
+      <div class="pt" id="qr-s1-title">💸 Pay via QR</div>
+      <div class="ps" id="qr-s1-sub">Rahul's Kirana Store</div>
+      <div class="wc" style="margin-bottom:10px"><div class="wcl">WALLET BALANCE</div><div class="wcb" id="qr-wb2">5,000</div><div class="wcn">Lavish Kumar</div></div>
+      <div class="psc" id="qr-amt-label">ENTER AMOUNT</div>
+      <div class="ad"><span class="rs">₹</span><span id="qr-a">0</span></div>
+      <div class="ah" id="qr-hint"> </div>
+      <div class="np">
+        <div class="nb" onclick="nI('qr',1)">1</div><div class="nb" onclick="nI('qr',2)">2</div><div class="nb" onclick="nI('qr',3)">3</div>
+        <div class="nb" onclick="nI('qr',4)">4</div><div class="nb" onclick="nI('qr',5)">5</div><div class="nb" onclick="nI('qr',6)">6</div>
+        <div class="nb" onclick="nI('qr',7)">7</div><div class="nb" onclick="nI('qr',8)">8</div><div class="nb" onclick="nI('qr',9)">9</div>
+        <div class="nb" onclick="nD('qr')">⌫</div><div class="nb z" onclick="nI('qr',0)">0</div>
+      </div>
+      <button class="cta grn" id="qr-amt-btn" onclick="qrAmtNext()">Continue →</button>
+      <button class="ctag" onclick="qrBack('s0')">← Back</button>
+    </div>
+
+    <!-- ── QR-S2: Liveness (pay ≥ ₹2500 only) ── -->
+    <div id="qr-s2" style="display:none">
+      <div class="stp"><div class="sd on"></div><div class="sd on"></div><div class="sd" id="qr-p3b"></div></div>
+      <div class="pt">🎥 Liveness Check</div>
+      <div class="ps" id="qr-live-sub">₹ requires human verification</div>
+      <video id="qr-camv" autoplay muted playsinline style="width:100%;border-radius:9px;background:#000;display:none;max-height:180px;object-fit:cover;margin-bottom:11px"></video>
+      <div class="lv chk" id="qr-lvs">🔍 Scanning for human presence...</div>
+      <button class="cta pri" id="qr-lv-btn" style="display:none;margin-top:10px" onclick="qrLiveDone()">✓ Proceed to PIN →</button>
+      <button class="ctag" onclick="qrCancelCam()">Cancel</button>
+    </div>
+
+    <!-- ── QR-S3: UPI PIN ── -->
+    <div id="qr-s3" style="display:none">
+      <div class="stp"><div class="sd on"></div><div class="sd on" id="qr-p2c"></div><div class="sd on"></div></div>
+      <div class="pt" id="qr-pin-title">🔐 Enter UPI PIN</div>
+      <div class="ps" id="qr-pin-sub">Confirm payment</div>
+      <div class="pr" id="qr-pp"><div class="pd"></div><div class="pd"></div><div class="pd"></div><div class="pd"></div></div>
+      <div class="np">
+        <div class="nb" onclick="pI('qr',1)">1</div><div class="nb" onclick="pI('qr',2)">2</div><div class="nb" onclick="pI('qr',3)">3</div>
+        <div class="nb" onclick="pI('qr',4)">4</div><div class="nb" onclick="pI('qr',5)">5</div><div class="nb" onclick="pI('qr',6)">6</div>
+        <div class="nb" onclick="pI('qr',7)">7</div><div class="nb" onclick="pI('qr',8)">8</div><div class="nb" onclick="pI('qr',9)">9</div>
+        <div class="nb" onclick="pD('qr')">⌫</div><div class="nb z" onclick="pI('qr',0)">0</div>
+      </div>
+      <div style="font-size:10px;color:#444;text-align:center;margin-top:6px">Enter any 4 digits to confirm</div>
+    </div>
+
+    <!-- ── QR-S4: Success ── -->
+    <div id="qr-s4" style="display:none">
+      <div class="suc"><div class="sui" id="qr-suc-icon">✅</div><div class="sut" id="qr-suc-title">Done!</div><div class="sum" id="qr-suc-msg">Transaction complete.</div></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══ OVERLAY: PAY (Camera + PIN) ═══ -->
+<div class="ov" id="ov-pay">
+  <div class="pop">
+    <button class="pc" onclick="clov('ov-pay')">✕ Close</button>
+    <div class="pt">💸 Make Payment</div>
+    <div class="ps">UPI to Rahul's Kirana Store</div>
+    <!-- Steps -->
+    <div class="stp"><div class="sd on" id="psp1"></div><div class="sd" id="psp2"></div><div class="sd" id="psp3"></div><div class="sd" id="psp4"></div></div>
+    <!-- Wallet bar -->
+    <div class="wc"><div class="wcl">WALLET BALANCE</div><div class="wcb" id="pwb">5,000</div><div class="wcn">Lavish Kumar</div></div>
+    <!-- Step 1: Amount -->
+    <div id="ps1">
+      <div class="psc">ENTER AMOUNT</div>
+      <div class="ad"><span class="rs">₹</span><span id="pa">0</span></div>
+      <div class="ah" id="phint">Amounts above ₹2,500 require liveness check</div>
+      <div class="np">
+        <div class="nb" onclick="nI('pay',1)">1</div><div class="nb" onclick="nI('pay',2)">2</div><div class="nb" onclick="nI('pay',3)">3</div>
+        <div class="nb" onclick="nI('pay',4)">4</div><div class="nb" onclick="nI('pay',5)">5</div><div class="nb" onclick="nI('pay',6)">6</div>
+        <div class="nb" onclick="nI('pay',7)">7</div><div class="nb" onclick="nI('pay',8)">8</div><div class="nb" onclick="nI('pay',9)">9</div>
+        <div class="nb" onclick="nD('pay')">⌫</div><div class="nb z" onclick="nI('pay',0)">0</div>
+      </div>
+      <button class="cta grn" onclick="payGo()">Pay Now →</button>
+    </div>
+    <!-- Step 2: Liveness -->
+    <div id="ps2" style="display:none">
+      <div class="psc" id="ps2t">🎥 LIVENESS CHECK</div>
+      <div class="ps" id="ps2s"></div>
+      <video id="camv" autoplay muted playsinline></video>
+      <div class="lv chk" id="lvs">🔍 Scanning for human presence...</div>
+      <button class="cta pri" id="lvpb" style="display:none" onclick="showPin()">✓ Proceed to PIN</button>
+      <button class="ctag" onclick="cancelCam();clov('ov-pay')">Cancel</button>
+    </div>
+    <!-- Step 3: PIN -->
+    <div id="ps3" style="display:none">
+      <div class="psc">ENTER UPI PIN</div>
+      <div class="ps" id="ps3s">Confirm payment</div>
+      <div class="pr" id="pp"><div class="pd"></div><div class="pd"></div><div class="pd"></div><div class="pd"></div></div>
+      <div class="np">
+        <div class="nb" onclick="pI('pay',1)">1</div><div class="nb" onclick="pI('pay',2)">2</div><div class="nb" onclick="pI('pay',3)">3</div>
+        <div class="nb" onclick="pI('pay',4)">4</div><div class="nb" onclick="pI('pay',5)">5</div><div class="nb" onclick="pI('pay',6)">6</div>
+        <div class="nb" onclick="pI('pay',7)">7</div><div class="nb" onclick="pI('pay',8)">8</div><div class="nb" onclick="pI('pay',9)">9</div>
+        <div class="nb" onclick="pD('pay')">⌫</div><div class="nb z" onclick="pI('pay',0)">0</div>
+      </div>
+    </div>
+    <!-- Step 4: Success -->
+    <div id="ps4" style="display:none">
+      <div class="suc"><div class="sui">✅</div><div class="sut" id="ps4t">Payment Successful!</div><div class="sum" id="ps4m">Payment confirmed!</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ OVERLAY: NFC (Score + Payment) ═══ -->
+<div class="ov" id="ov-nfc">
+  <div class="pop">
+    <button class="pc" onclick="clov('ov-nfc')">✕ Close</button>
+    <div class="pt">📡 NFC Module</div>
+    <div class="ps">PN532 · 13.56 MHz · Offline Capable</div>
+    <!-- Step 1: Score display -->
+    <div id="ns1">
+      <div class="sc">
+        <div class="scl">SPECTRA CREDIT SCORE</div>
+        <div class="scn" id="nscn">300</div>
+        <div class="scr" id="nscr">Building...</div>
+        <div class="scbb"><div class="scbf" id="nscb" style="width:0%"></div></div>
+        <div class="scrg"><span>300</span><span>600</span><span>900</span></div>
+        <div class="scf">
+          <div class="sff"><div class="sfv" id="nf1">0</div><div class="sfl">Payments</div></div>
+          <div class="sff"><div class="sfv" id="nf2">₹0</div><div class="sfl">Volume</div></div>
+          <div class="sff"><div class="sfv" id="nf3">0</div><div class="sfl">Days Active</div></div>
+        </div>
+      </div>
+      <!-- Score logic explanation -->
+      <div style="background:rgba(108,99,255,.07);border:1px solid rgba(108,99,255,.2);border-radius:9px;padding:10px 13px;margin-bottom:13px;font-size:11px;color:#888;line-height:1.7">
+        📊 Score needs <b style="color:#aaa">10+ payments</b> and <b style="color:#aaa">₹5,000+ volume</b> to start growing above 300.
+      </div>
+      <div class="le" id="nle" style="display:none">
+        <div class="let">✅ Loan Pre-Approved!</div>
+        <div class="lea" id="nla">₹0</div>
+      </div>
+      <div class="lno" id="nlno">📉 Keep transacting to unlock loan eligibility. Need 10+ payments &amp; ₹5,000+ volume.</div>
+      <button class="cta yel" onclick="nfcTap()">📱 Tap Phone to Pay →</button>
+    </div>
+    <!-- Step 2: NFC animation + amount -->
+    <div id="ns2" style="display:none">
+      <div class="wc" style="margin-bottom:10px"><div class="wcl">WALLET BALANCE</div><div class="wcb" id="nwb">5,000</div><div class="wcn">Lavish Kumar</div></div>
+      <div class="nfcv anim" id="nfcv">
+        <div class="nfcp">📱</div>
+        <div class="nfcr">
+          <div class="nfcri" style="width:16px;height:16px"></div>
+          <div class="nfcri" style="width:26px;height:26px"></div>
+          <div class="nfcri" style="width:38px;height:38px"></div>
+        </div>
+        <div class="nfcb">📟</div>
+      </div>
+      <div class="psc">AMOUNT (OFFLINE)</div>
+      <div class="ad"><span class="rs">₹</span><span id="na">0</span></div>
+      <div class="np">
+        <div class="nb" onclick="nI('nfc',1)">1</div><div class="nb" onclick="nI('nfc',2)">2</div><div class="nb" onclick="nI('nfc',3)">3</div>
+        <div class="nb" onclick="nI('nfc',4)">4</div><div class="nb" onclick="nI('nfc',5)">5</div><div class="nb" onclick="nI('nfc',6)">6</div>
+        <div class="nb" onclick="nI('nfc',7)">7</div><div class="nb" onclick="nI('nfc',8)">8</div><div class="nb" onclick="nI('nfc',9)">9</div>
+        <div class="nb" onclick="nD('nfc')">⌫</div><div class="nb z" onclick="nI('nfc',0)">0</div>
+      </div>
+      <button class="cta pri" onclick="nfcPin()">Confirm Amount →</button>
+    </div>
+    <!-- Step 3: PIN -->
+    <div id="ns3" style="display:none">
+      <div class="psc">OFFLINE PIN</div>
+      <div class="pr" id="np2"><div class="pd"></div><div class="pd"></div><div class="pd"></div><div class="pd"></div></div>
+      <div class="np">
+        <div class="nb" onclick="pI('nfc',1)">1</div><div class="nb" onclick="pI('nfc',2)">2</div><div class="nb" onclick="pI('nfc',3)">3</div>
+        <div class="nb" onclick="pI('nfc',4)">4</div><div class="nb" onclick="pI('nfc',5)">5</div><div class="nb" onclick="pI('nfc',6)">6</div>
+        <div class="nb" onclick="pI('nfc',7)">7</div><div class="nb" onclick="pI('nfc',8)">8</div><div class="nb" onclick="pI('nfc',9)">9</div>
+        <div class="nb" onclick="pD('nfc')">⌫</div><div class="nb z" onclick="pI('nfc',0)">0</div>
+      </div>
+    </div>
+    <!-- Step 4: NFC Success -->
+    <div id="ns4" style="display:none">
+      <div class="suc"><div class="sui">📡</div><div class="sut">NFC Paid!</div><div class="sum" id="ns4m">Offline payment complete.</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ OVERLAY: KHATA ═══ -->
+<div class="ov" id="ov-kht">
+  <div class="pop">
+    <button class="pc" onclick="clov('ov-kht')">✕ Close</button>
+    <div class="pt">📒 Digital Khata</div>
+    <div class="ps">Add credit (Udhaar) to Rahul's ledger</div>
+    <!-- Khata balance -->
+    <div class="kc"><div class="kcl">OUTSTANDING UDHAAR</div><div class="kcb">₹<span id="kbd">0</span></div><div class="kcs">Lavish Kumar → Rahul's Kirana</div></div>
+    <!-- Step 1: Amount -->
+    <div id="ks1">
+      <div class="psc">ENTER UDHAAR AMOUNT</div>
+      <div class="ad"><span class="rs">₹</span><span id="ka">0</span></div>
+      <div class="np">
+        <div class="nb" onclick="nI('kht',1)">1</div><div class="nb" onclick="nI('kht',2)">2</div><div class="nb" onclick="nI('kht',3)">3</div>
+        <div class="nb" onclick="nI('kht',4)">4</div><div class="nb" onclick="nI('kht',5)">5</div><div class="nb" onclick="nI('kht',6)">6</div>
+        <div class="nb" onclick="nI('kht',7)">7</div><div class="nb" onclick="nI('kht',8)">8</div><div class="nb" onclick="nI('kht',9)">9</div>
+        <div class="nb" onclick="nD('kht')">⌫</div><div class="nb z" onclick="nI('kht',0)">0</div>
+      </div>
+      <button class="cta pri" onclick="khtNext()">Add to Khata →</button>
+    </div>
+    <!-- Step 2: PIN -->
+    <div id="ks2" style="display:none">
+      <div class="psc">CONFIRM WITH PIN</div>
+      <div class="pr" id="kp"><div class="pd"></div><div class="pd"></div><div class="pd"></div><div class="pd"></div></div>
+      <div class="np">
+        <div class="nb" onclick="pI('kht',1)">1</div><div class="nb" onclick="pI('kht',2)">2</div><div class="nb" onclick="pI('kht',3)">3</div>
+        <div class="nb" onclick="pI('kht',4)">4</div><div class="nb" onclick="pI('kht',5)">5</div><div class="nb" onclick="pI('kht',6)">6</div>
+        <div class="nb" onclick="pI('kht',7)">7</div><div class="nb" onclick="pI('kht',8)">8</div><div class="nb" onclick="pI('kht',9)">9</div>
+        <div class="nb" onclick="pD('kht')">⌫</div><div class="nb z" onclick="pI('kht',0)">0</div>
+      </div>
+    </div>
+    <!-- Step 3: Success -->
+    <div id="ks3" style="display:none">
+      <div class="suc"><div class="sui">📒</div><div class="sut">Khata Updated!</div><div class="sum" id="ks3m">Udhaar added successfully.</div></div>
+    </div>
+    <button class="ctag" onclick="clov('ov-kht')">Close</button>
+  </div>
+</div>
+
+<!-- ═══ OVERLAY: WALLET CONTROL ═══ -->
+<div class="ov" id="ov-wallet">
+  <div class="pop" style="max-width:340px">
+    <button class="pc" onclick="clov('ov-wallet')">✕ Close</button>
+    <div class="pt">💰 Wallet Control</div>
+    <div class="ps">Adjust test wallet balance for simulation</div>
+    <div class="wc" style="margin-bottom:16px">
+      <div class="wcl">CURRENT BALANCE</div>
+      <div class="wcb" id="wal-cur">₹5,000</div>
+      <div class="wcn" style="color:rgba(255,255,255,.4);font-size:12px;margin-top:4px">Tap to update all panels</div>
+    </div>
+    <div class="psc">SET BALANCE</div>
+    <div class="np" style="margin-bottom:12px">
+      <div class="nb" onclick="setWal(1000)">₹1K</div>
+      <div class="nb" onclick="setWal(2500)">₹2.5K</div>
+      <div class="nb" onclick="setWal(5000)">₹5K</div>
+      <div class="nb" onclick="setWal(10000)">₹10K</div>
+      <div class="nb" onclick="setWal(25000)">₹25K</div>
+      <div class="nb" onclick="setWal(50000)">₹50K</div>
+      <div class="nb" onclick="setWal(100000)">₹1L</div>
+      <div class="nb" onclick="setWal(500000)">₹5L</div>
+      <div class="nb" onclick="setWal(1000000)">₹10L</div>
+    </div>
+    <div class="psc">CUSTOM AMOUNT</div>
+    <div class="np" style="margin-bottom:14px">
+      <div class="nb" onclick="walI(1)">1</div><div class="nb" onclick="walI(2)">2</div><div class="nb" onclick="walI(3)">3</div>
+      <div class="nb" onclick="walI(4)">4</div><div class="nb" onclick="walI(5)">5</div><div class="nb" onclick="walI(6)">6</div>
+      <div class="nb" onclick="walI(7)">7</div><div class="nb" onclick="walI(8)">8</div><div class="nb" onclick="walI(9)">9</div>
+      <div class="nb" onclick="walD()">⌫</div><div class="nb z" onclick="walI(0)">0</div>
+    </div>
+    <div style="font-family:'JetBrains Mono',monospace;font-size:22px;text-align:center;color:#6c63ff;margin-bottom:14px" id="wal-custom">₹0</div>
+    <button class="cta grn" onclick="applyWalCustom()">Apply Custom Amount</button>
+    <button class="ctag" onclick="clov('ov-wallet')">Close</button>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+//  SPECTRA BOX — Pure Canvas 2D Isometric 3D Renderer
+//  No Three.js, no CDN, works 100% offline
+// ═══════════════════════════════════════════════════════════════
+
+// ── APP STATE ────────────────────────────────────────────────
+var amts={pay:'',kht:'',nfc:'',qr:''};
+var pins={pay:'',kht:'',nfc:'',qr:''};
+var walBal=parseInt(localStorage.getItem('spectra_wallet')||'5000'), khtBal=parseInt(localStorage.getItem('spectra_khata')||'0'), pendAmt=0;
+var camStream=null, lvTmr=null;
+var selId=null;
+var exploded=false, wiresOn=false, xrayOn=false, rotOn=false;
+
+// ── ISOMETRIC CAMERA ──────────────────────────────────────────
+var camAngle = 0.55;       // horizontal rotation (radians)
+var camTilt  = 0.42;       // vertical tilt
+var camZoom  = 1.0;
+var targetAngle = 0.55;
+var targetTilt  = 0.42;
+var targetZoom  = 1.0;
+var isDragging = false;
+var lastMouse  = {x:0, y:0};
+var autoRotate = false;
+var panX=0, panY=0, tpanX=0, tpanY=0;
+
+// ── CANVAS SETUP ──────────────────────────────────────────────
+var cv = document.getElementById('cv');
+var ctx = cv.getContext('2d');
+var W, H, CX, CY;
+
+function resize(){
+  W = window.innerWidth; H = window.innerHeight;
+  cv.width = W; cv.height = H;
+  CX = W/2; CY = H/2;
+}
+resize();
+window.addEventListener('resize', resize);
+
+// ── ISO PROJECTION ────────────────────────────────────────────
+// Converts 3D world coords to 2D screen coords
+function project(x, y, z){
+  // Rotate around Y axis (horizontal spin)
+  var rx = x * Math.cos(camAngle) - z * Math.sin(camAngle);
+  var rz = x * Math.sin(camAngle) + z * Math.cos(camAngle);
+  var ry = y;
+  // Tilt (rotate around X axis)
+  var sy = ry * Math.cos(camTilt) - rz * Math.sin(camTilt);
+  var sz = ry * Math.sin(camTilt) + rz * Math.cos(camTilt);
+  // Scale and center
+  var scale = 55 * camZoom;
+  return {
+    x: CX + rx * scale + panX,
+    y: CY - sy * scale + panY,
+    z: sz  // depth for sorting
+  };
+}
+
+// ── DRAW HELPERS ──────────────────────────────────────────────
+function poly(pts, fill, stroke, strokeW){
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x, pts[0].y);
+  for(var i=1;i<pts.length;i++) ctx.lineTo(pts[i].x, pts[i].y);
+  ctx.closePath();
+  if(fill){ ctx.fillStyle = fill; ctx.fill(); }
+  if(stroke){ ctx.strokeStyle = stroke; ctx.lineWidth = strokeW||0.5; ctx.stroke(); }
+}
+
+function hex2rgba(hex, a){
+  var r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
+  return 'rgba('+r+','+g+','+b+','+a+')';
+}
+
+// Shade a hex color by factor (>1 = lighter, <1 = darker)
+function shade(hex, factor){
+  var r=Math.min(255,Math.round(parseInt(hex.slice(1,3),16)*factor));
+  var g=Math.min(255,Math.round(parseInt(hex.slice(3,5),16)*factor));
+  var b=Math.min(255,Math.round(parseInt(hex.slice(5,7),16)*factor));
+  return '#'+r.toString(16).padStart(2,'0')+g.toString(16).padStart(2,'0')+b.toString(16).padStart(2,'0');
+}
+
+// Draw a 3D box face by face (top, front, right side)
+function drawBox(cx, cy, cz, w, h, d, col, opts){
+  opts = opts || {};
+  var alpha = opts.alpha || 1;
+  var glow  = opts.glow  || null;
+
+  // 8 corners of the box
+  var x0=cx-w/2, x1=cx+w/2;
+  var y0=cy-h/2, y1=cy+h/2;
+  var z0=cz-d/2, z1=cz+d/2;
+
+  var corners = [
+    project(x0,y0,z0), project(x1,y0,z0),
+    project(x1,y1,z0), project(x0,y1,z0),
+    project(x0,y0,z1), project(x1,y0,z1),
+    project(x1,y1,z1), project(x0,y1,z1)
+  ];
+
+  // Determine which faces are visible based on camera angle
+  var frontZ = (Math.cos(camAngle) > 0);
+  var rightX  = (Math.sin(camAngle) > 0);
+
+  var topCol   = shade(col, 1.4);
+  var frontCol = shade(col, 1.0);
+  var sideCol  = shade(col, 0.65);
+
+  if(alpha < 1){
+    topCol   = hex2rgba(topCol, alpha);
+    frontCol = hex2rgba(frontCol, alpha);
+    sideCol  = hex2rgba(sideCol, alpha);
+  }
+
+  var brd = 'rgba(0,0,0,0.3)';
+
+  // Top face (y1)
+  poly([corners[3],corners[2],corners[6],corners[7]], topCol, brd);
+
+  // Front or back face (z)
+  if(frontZ){
+    poly([corners[4],corners[5],corners[6],corners[7]], frontCol, brd);
+  } else {
+    poly([corners[0],corners[1],corners[2],corners[3]], frontCol, brd);
+  }
+
+  // Left or right face (x)
+  if(rightX){
+    poly([corners[1],corners[5],corners[6],corners[2]], sideCol, brd);
+  } else {
+    poly([corners[0],corners[4],corners[7],corners[3]], sideCol, brd);
+  }
+
+  // Glow outline
+  if(glow){
+    ctx.shadowColor = glow;
+    ctx.shadowBlur  = 14;
+    poly([corners[3],corners[2],corners[6],corners[7]], 'transparent', glow, 1.5);
+    ctx.shadowBlur = 0;
+    ctx.shadowColor = 'transparent';
+  }
+
+  // Return center projected point for click detection
+  return project(cx, cy, cz);
+}
+
+// Draw a cylinder (as polygon prism approximation)
+function drawCyl(cx, cy, cz, r, h, col, segs){
+  segs = segs || 12;
+  var topPts = [], botPts = [];
+  for(var i=0;i<segs;i++){
+    var a = (i/segs)*Math.PI*2;
+    topPts.push(project(cx+Math.cos(a)*r, cy+h/2, cz+Math.sin(a)*r));
+    botPts.push(project(cx+Math.cos(a)*r, cy-h/2, cz+Math.sin(a)*r));
+  }
+  // Side
+  ctx.beginPath();
+  ctx.moveTo(botPts[0].x, botPts[0].y);
+  for(var i=0;i<segs;i++){
+    var ni=(i+1)%segs;
+    ctx.lineTo(botPts[i].x,  botPts[i].y);
+    ctx.lineTo(topPts[i].x,  topPts[i].y);
+    ctx.lineTo(topPts[ni].x, topPts[ni].y);
+    ctx.lineTo(botPts[ni].x, botPts[ni].y);
+  }
+  ctx.fillStyle = shade(col, 0.85); ctx.fill();
+  ctx.strokeStyle='rgba(0,0,0,0.3)'; ctx.lineWidth=0.5; ctx.stroke();
+  // Top
+  poly(topPts, shade(col, 1.3), 'rgba(0,0,0,0.2)');
+}
+
+// Draw a glowing dot (LED)
+function drawLED(cx, cy, cz, r, col){
+  var p = project(cx, cy, cz);
+  ctx.beginPath();
+  ctx.arc(p.x, p.y, r*55*camZoom, 0, Math.PI*2);
+  ctx.fillStyle = col;
+  ctx.shadowColor = col;
+  ctx.shadowBlur = 10;
+  ctx.fill();
+  ctx.shadowBlur = 0;
+}
+
+// Draw a line between two 3D points
+function drawLine3d(x1,y1,z1,x2,y2,z2,col,w){
+  var a=project(x1,y1,z1), b=project(x2,y2,z2);
+  ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y);
+  ctx.strokeStyle=col; ctx.lineWidth=w||1.5; ctx.stroke();
+}
+
+// ── COMPONENT REGISTRY ────────────────────────────────────────
+var components = []; // {id, cx,cy,cz, w,h,d, col, label, px,py (screen center)}
+var explodeOffsets = {
+  box:  {x:0,  y:0,   z:0},
+  pcb:  {x:0,  y:0,   z:0},
+  mcu:  {x:0,  y:0,   z:3.2},
+  oled: {x:0,  y:3.2, z:2.2},
+  qr:   {x:0,  y:-2.8,z:2.2},
+  nfc:  {x:-3.2,y:0,  z:1.8},
+  cam:  {x:3.2, y:0,  z:1.8},
+  spk:  {x:0,  y:3.8, z:2.2},
+  btn:  {x:-4.0,y:0,  z:1.8},
+  psu:  {x:0,  y:-3.8,z:-2},
+  wifi: {x:4.0,y:3.8, z:0}
+};
+
+// Base positions of every component
+var baseParts = [
+  // Main enclosure shell
+  {id:'box',  cx:0,    cy:0,    cz:0,    w:3.4, h:4.8, d:2.0,  col:'#1a1a28', label:'ABS Enclosure'},
+  // Accent top band
+  {id:'box',  cx:0,    cy:2.45, cz:0,    w:3.4, h:0.1, d:2.0,  col:'#6c63ff', label:null, noclick:true},
+  // PCB
+  {id:'pcb',  cx:0,    cy:0,    cz:0.15, w:3.0, h:4.2, d:0.12, col:'#0d2b1a', label:'Main PCB'},
+  // ESP32-S3
+  {id:'mcu',  cx:0.1,  cy:0.2,  cz:0.42, w:1.0, h:1.0, d:0.22, col:'#101015', label:'ESP32-S3'},
+  {id:'mcu',  cx:0.1,  cy:0.2,  cz:0.52, w:0.9, h:0.9, d:0.06, col:'#888898', label:null, noclick:true},
+  // OLED
+  {id:'oled', cx:0,    cy:0.88, cz:1.05, w:1.9, h:1.3, d:0.08, col:'#001122', label:'OLED Display'},
+  {id:'oled', cx:0,    cy:0.88, cz:1.09, w:1.55,h:0.88,d:0.02, col:'#001844', label:null, noclick:true},
+  // Static QR panel
+  {id:'qr',   cx:0,    cy:-0.6, cz:1.05, w:1.35,h:1.35,d:0.1,  col:'#1a1a24', label:'UPI QR Code'},
+  {id:'qr',   cx:0,    cy:-0.6, cz:1.1,  w:1.2, h:1.2, d:0.02, col:'#ffffff', label:null, noclick:true},
+  // QR finder squares
+  {id:'qr',   cx:-0.38,cy:-0.22,cz:1.12, w:0.22,h:0.22,d:0.015,col:'#111111', label:null, noclick:true},
+  {id:'qr',   cx:0.38, cy:-0.22,cz:1.12, w:0.22,h:0.22,d:0.015,col:'#111111', label:null, noclick:true},
+  {id:'qr',   cx:-0.38,cy:-0.98,cz:1.12, w:0.22,h:0.22,d:0.015,col:'#111111', label:null, noclick:true},
+  // NFC module
+  {id:'nfc',  cx:-0.78,cy:-1.5, cz:1.05, w:1.4, h:0.9, d:0.08, col:'#001a08', label:'NFC PN532'},
+  {id:'nfc',  cx:0.38, cy:-1.4, cz:1.1,  w:0.45,h:0.35,d:0.1,  col:'#101015', label:null, noclick:true},
+  // Camera
+  {id:'cam',  cx:0.98, cy:-1.5, cz:1.05, w:0.65,h:0.55,d:0.3,  col:'#1a1a22', label:'OV2640 Camera'},
+  {id:'cam',  cx:0.98, cy:-1.5, cz:1.2,  w:0.35,h:0.35,d:0.1,  col:'#112233', label:null, noclick:true},
+  // Speaker
+  {id:'spk',  cx:0,    cy:1.88, cz:1.05, w:1.1, h:0.55,d:0.18, col:'#1c1c24', label:'Speaker+PAM8403'},
+  // NFC Button
+  {id:'btn',  cx:-1.42,cy:-1.5, cz:1.05, w:0.52,h:0.52,d:0.1,  col:'#444453', label:'NFC Button'},
+  {id:'btn',  cx:-1.42,cy:-1.5, cz:1.15, w:0.32,h:0.32,d:0.06, col:'#2233aa', label:null, noclick:true},
+  // PSU
+  {id:'psu',  cx:0,    cy:-2.05,cz:0.0,  w:2.1, h:0.85,d:0.7,  col:'#1a0808', label:'PSU 5V/3A'},
+  {id:'psu',  cx:-0.55,cy:-2.05,cz:0.35, w:0.52,h:0.52,d:0.52, col:'#1a1a1a', label:null, noclick:true},
+  // WiFi antenna rod
+  {id:'wifi', cx:1.45, cy:2.35, cz:-0.35,w:0.08,h:1.6, d:0.08, col:'#333344', label:'WiFi Antenna'},
+  {id:'wifi', cx:1.45, cy:1.55, cz:-0.35,w:0.2, h:0.16,d:0.2,  col:'#cccccc', label:null, noclick:true},
+  // Corner accent strips
+  {id:'box',  cx:-1.67,cy:0,    cz:-0.99,w:0.07,h:4.8, d:0.07, col:'#6c63ff', label:null, noclick:true},
+  {id:'box',  cx:1.67, cy:0,    cz:-0.99,w:0.07,h:4.8, d:0.07, col:'#6c63ff', label:null, noclick:true},
+  {id:'box',  cx:-1.67,cy:0,    cz:0.99, w:0.07,h:4.8, d:0.07, col:'#6c63ff', label:null, noclick:true},
+  {id:'box',  cx:1.67, cy:0,    cz:0.99, w:0.07,h:4.8, d:0.07, col:'#6c63ff', label:null, noclick:true},
+  // Panel LEDs
+  {id:'box',  cx:-1.15,cy:1.5,  cz:1.02, w:0.1, h:0.1, d:0.06, col:'#00ff41', label:null, noclick:true},
+  {id:'box',  cx:-0.88,cy:1.5,  cz:1.02, w:0.1, h:0.1, d:0.06, col:'#00d4ff', label:null, noclick:true},
+  {id:'box',  cx:-0.61,cy:1.5,  cz:1.02, w:0.1, h:0.1, d:0.06, col:'#ffd60a', label:null, noclick:true},
+  {id:'box',  cx:-0.34,cy:1.5,  cz:1.02, w:0.1, h:0.1, d:0.06, col:'#ff4757', label:null, noclick:true},
+  // USB-C port
+  {id:'box',  cx:0,    cy:-2.41,cz:0.45, w:0.48,h:0.2, d:0.1,  col:'#888899', label:null, noclick:true},
+  // Heatsink fins on MCU
+  {id:'mcu',  cx:0.1,  cy:0.2,  cz:0.62, w:0.65,h:0.65,d:0.12, col:'#555566', label:null, noclick:true},
+  {id:'mcu',  cx:0.1,  cy:0.28, cz:0.74, w:0.5, h:0.07,d:0.25, col:'#666677', label:null, noclick:true},
+  {id:'mcu',  cx:0.1,  cy:0.04, cz:0.74, w:0.5, h:0.07,d:0.25, col:'#666677', label:null, noclick:true},
+];
+
+// Clickable component info
+var CDATA = {
+  box:  {name:'ABS Enclosure',       c:'#6c63ff', b:'HOUSING',  d:'Injection-molded ABS shell with vents, rubber feet, USB-C port and purple accent strips.',                               s:[['Material','ABS Plastic'],['Dims','120×80×60mm'],['Port','USB-C 5V/3A'],['LEDs','4 status indicators']], a:'Boot Sequence', sim:'boot'},
+  mcu:  {name:'ESP32-S3 MCU',        c:'#6c63ff', b:'MCU',      d:'Dual-core Xtensa LX7 @ 240MHz. Runs all logic: QR, NFC, camera, I2S audio, WiFi webhooks.',                            s:[['CPU','Dual LX7 @ 240MHz'],['RAM','512KB+8MB PSRAM'],['Flash','16MB'],['WiFi','802.11n']], a:'Ping MCU', sim:'mcu'},
+  pcb:  {name:'4-Layer Main PCB',    c:'#2ecc71', b:'PCB',      d:'Custom 4-layer FR4 PCB. Signal + power planes + GND. KiCad design.',                                                    s:[['Layers','4 (sig/pwr/pwr/GND)'],['Material','FR4 1.6mm'],['Finish','HASL']], a:'Show Net List', sim:'pcb'},
+  oled: {name:'SSD1306 OLED',        c:'#00d4ff', b:'I2C',      d:'1.3" 128×64 monochrome OLED. Shows payment status, amount, merchant name live.',                                        s:[['Driver','SSD1306'],['Size','1.3 inch 128×64'],['Interface','I2C 0x3C']], a:'Flash Display', sim:'oled'},
+  qr:   {name:'Static QR Panel',     c:'#ff8c00', b:'UPI QR',   d:'Printed UPI QR on front face — like Paytm SoundBox. Customer scans to pay or add Khata.',                              s:[['UPI ID','rahul@spectra'],['Type','Static QR panel'],['Backlit','Yes']], a:'Simulate QR Scan', sim:'qr'},
+  nfc:  {name:'NFC PN532',           c:'#ffd60a', b:'SPI/I2C',  d:'13.56MHz NFC for offline tap-to-pay. Shows credit score when customer taps.',                                           s:[['Chip','NXP PN532'],['Freq','13.56 MHz'],['Range','~5 cm']], a:'Open NFC Payment', sim:'nfc'},
+  cam:  {name:'OV2640 Camera',       c:'#ff4757', b:'DVP',      d:'2MP camera for liveness detection on payments above ₹2500. Blocks screenshots and bots.',                               s:[['Sensor','OV2640 2MP'],['FPS','30fps @ VGA'],['FOV','66°']], a:'Test Liveness', sim:'cam'},
+  spk:  {name:'Speaker + PAM8403',   c:'#00e676', b:'I2S',      d:'3W Class-D amp + speaker. Hindi voice: "Lavish ne ₹500 pay kiya".',                                                    s:[['Amp','PAM8403 3W'],['Interface','I2S/PWM'],['SNR','>75dB']], a:'Play Voice Demo', sim:'spk'},
+  btn:  {name:'NFC Button',          c:'#a78bfa', b:'GPIO',     d:'Push button beside NFC = simulates phone tap for demo. Opens NFC payment popup.',                                       s:[['Type','Tactile switch'],['GPIO','ESP32 GPIO34'],['Debounce','10ms']], a:'Press Button', sim:'btn'},
+  psu:  {name:'PSU 5V/3A',           c:'#ff6bcb', b:'POWER',    d:'SMPS: USB-C or DC barrel. 5V + 3.3V rails for all components.',                                                        s:[['Input','USB-C 5V/3A or 9-12V'],['Out1','5V @ 2A'],['Out2','3.3V @ 500mA']], a:'Check Power', sim:'psu'},
+  wifi: {name:'WiFi Antenna',        c:'#38bdf8', b:'RF 2.4GHz',d:'3dBi external antenna. Sends payment webhooks to business dashboard.',                                                 s:[['Gain','3 dBi'],['Freq','2.4-2.5 GHz'],['Connector','IPEX→RP-SMA']], a:'Test WiFi', sim:'wifi'},
+};
+
+// ── LED PULSE STATE ───────────────────────────────────────────
+var ledPulse = [0,0,0,0]; // brightness for 4 panel LEDs
+var ledBlink = [0,0,0,0]; // blink counters
+var nfcCoilAngle = 0;
+var oledFlash = 0;
+var camLedOn = false;
+var frame = 0;
+
+// ── EXPLODE STATE ─────────────────────────────────────────────
+var explodeAmt = 0; // 0..1 animated
+
+// ── WIRE SEGMENTS ─────────────────────────────────────────────
+var wireSegs = [
+  {pts:[[0.1,0.2,0.42],[0,0.88,1.0]],         col:'#ff8c00', label:'I2C→OLED'},
+  {pts:[[0.1,0.2,0.42],[-0.78,-1.5,1.0]],     col:'#ff8c00', label:'I2C→NFC'},
+  {pts:[[0.1,0.2,0.42],[0,-0.6,1.0]],          col:'#ffd60a', label:'UART→QR'},
+  {pts:[[0.1,0.2,0.42],[0.98,-1.5,1.0]],       col:'#ff4757', label:'DVP→CAM'},
+  {pts:[[0.1,0.2,0.42],[0,1.88,1.0]],          col:'#00e676', label:'I2S→SPK'},
+  {pts:[[0.1,0.2,0.42],[-1.42,-1.5,1.0]],     col:'#a78bfa', label:'GPIO→BTN'},
+  {pts:[[0,-2.05,0],[0.1,0.2,0.37]],           col:'#ff3333', label:'5V PWR'},
+  {pts:[[0,-2.05,0],[0.1,0.2,0.37]],           col:'#222222', label:'GND'},
+];
+
+// ── HOVER / CLICK STATE ───────────────────────────────────────
+var hoveredId = null;
+var clickRegions = []; // filled each frame: [{id, x,y,r}]
+
+// ── MAIN DRAW ─────────────────────────────────────────────────
+function draw(){
+  ctx.clearRect(0,0,W,H);
+
+  // Background gradient
+  var grad = ctx.createRadialGradient(CX,CY,0,CX,CY,Math.max(W,H));
+  grad.addColorStop(0,'#0f0f1a');
+  grad.addColorStop(1,'#07070f');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0,0,W,H);
+
+  // Grid
+  drawGrid();
+
+  // Animate explode
+  if(exploded) explodeAmt = Math.min(1, explodeAmt+0.04);
+  else         explodeAmt = Math.max(0, explodeAmt-0.04);
+
+  // Sort parts by depth (painter's algorithm)
+  var parts = baseParts.map(function(p, i){
+    var off = explodeDir(p.id);
+    var cx = p.cx + off.x*explodeAmt;
+    var cy = p.cy + off.y*explodeAmt;
+    var cz = p.cz + off.z*explodeAmt;
+    var depth = project(cx,cy,cz).z;
+    return {p:p, cx:cx, cy:cy, cz:cz, depth:depth, i:i};
+  });
+  parts.sort(function(a,b){return b.depth-a.depth;});
+
+  clickRegions = [];
+
+  // Draw wires
+  if(wiresOn){
+    wireSegs.forEach(function(w){
+      var off0 = explodeDir('mcu');
+      var p0 = w.pts[0], p1 = w.pts[1];
+      var id1 = guessWireTarget(w.label);
+      var off1 = explodeDir(id1);
+      drawLine3d(
+        p0[0]+off0.x*explodeAmt, p0[1]+off0.y*explodeAmt, p0[2]+off0.z*explodeAmt,
+        p1[0]+off1.x*explodeAmt, p1[1]+off1.y*explodeAmt, p1[2]+off1.z*explodeAmt,
+        w.col, 1.5
+      );
+    });
+  }
+
+  // Draw all parts
+  parts.forEach(function(item){
+    var p = item.p;
+    var isHov = (hoveredId && hoveredId===p.id && !p.noclick);
+    var isSel = (selId && selId===p.id && !p.noclick);
+    var glowCol = null;
+    if(isSel) glowCol = CDATA[p.id] ? CDATA[p.id].c : null;
+    if(isHov) glowCol = '#ffffff';
+
+    var drawCol = p.col;
+    // OLED screen flash
+    if(p.id==='oled' && p.col==='#001844'){
+      var br = 0.3 + oledFlash*0.7;
+      drawCol = shade('#001844', 0.5+br);
+    }
+
+    var center = drawBox(item.cx, item.cy, item.cz, p.w, p.h, p.d, drawCol,
+      {glow: glowCol, alpha: (xrayOn && p.id==='box' && p.w>3) ? 0.18 : 1});
+
+    // Register clickable region
+    if(!p.noclick && center){
+      clickRegions.push({id:p.id, x:center.x, y:center.y, r:30});
+    }
+  });
+
+  // NFC coil rings
+  var nfcOff = explodeDir('nfc');
+  drawNFCCoil(-0.78+nfcOff.x*explodeAmt, -1.5+nfcOff.y*explodeAmt, 1.1+nfcOff.z*explodeAmt);
+
+  // Speaker cone circles
+  var spkOff = explodeDir('spk');
+  drawSpeakerCone(0+spkOff.x*explodeAmt, 1.88+spkOff.y*explodeAmt, 1.1+spkOff.z*explodeAmt);
+
+  // Panel LEDs (glowing dots on front face)
+  var bOff = explodeDir('box');
+  var ledCols = ['#00ff41','#00d4ff','#ffd60a','#ff4757'];
+  var ledX = [-1.15,-0.88,-0.61,-0.34];
+  ledCols.forEach(function(c,i){
+    var pulse = 0.7 + 0.3*Math.sin(frame*0.05+i*1.1) + ledPulse[i]*0.5;
+    ctx.save();
+    ctx.globalAlpha = pulse;
+    drawLED(ledX[i]+bOff.x*explodeAmt, 1.5+bOff.y*explodeAmt, 1.05+bOff.z*explodeAmt, 0.055, c);
+    ctx.restore();
+  });
+
+  // Camera LED
+  var camOff = explodeDir('cam');
+  var camLedBright = camLedOn ? 0.9+0.1*Math.sin(frame*0.3) : 0.15;
+  ctx.save(); ctx.globalAlpha = camLedBright;
+  drawLED(0.98+0.23+camOff.x*explodeAmt, -1.5+0.18+camOff.y*explodeAmt, 1.05+0.15+camOff.z*explodeAmt, 0.04, '#ff4757');
+  ctx.restore();
+
+  // Hover label
+  if(hoveredId && CDATA[hoveredId]){
+    var tipEl = document.getElementById('tip');
+    tipEl.style.display='block';
+    tipEl.textContent = CDATA[hoveredId].name;
+  } else {
+    var tipEl = document.getElementById('tip');
+    if(tipEl) tipEl.style.display='none';
+  }
+
+  // Decay LED pulses
+  for(var i=0;i<4;i++) if(ledPulse[i]>0) ledPulse[i] = Math.max(0, ledPulse[i]-0.015);
+  if(oledFlash>0) oledFlash = Math.max(0, oledFlash-0.05);
+
+  frame++;
+}
+
+function explodeDir(id){
+  var e = explodeOffsets[id] || {x:0,y:0,z:0};
+  return e;
+}
+
+function guessWireTarget(label){
+  if(label.includes('OLED'))  return 'oled';
+  if(label.includes('NFC'))   return 'nfc';
+  if(label.includes('QR'))    return 'qr';
+  if(label.includes('CAM'))   return 'cam';
+  if(label.includes('SPK'))   return 'spk';
+  if(label.includes('BTN'))   return 'btn';
+  return 'psu';
+}
+
+// ── GRID FLOOR ────────────────────────────────────────────────
+function drawGrid(){
+  var size = 10, step = 1;
+  ctx.save();
+  ctx.globalAlpha = 0.18;
+  ctx.strokeStyle = '#1a1a3a';
+  ctx.lineWidth = 0.5;
+  for(var x=-size;x<=size;x+=step){
+    var a=project(x,-3.1,-size), b=project(x,-3.1,size);
+    ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke();
+  }
+  for(var z=-size;z<=size;z+=step){
+    var a=project(-size,-3.1,z), b=project(size,-3.1,z);
+    ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke();
+  }
+  ctx.restore();
+}
+
+// ── NFC COIL ──────────────────────────────────────────────────
+function drawNFCCoil(cx,cy,cz){
+  for(var i=0;i<5;i++){
+    var r = 0.14+i*0.09;
+    var segs = 32;
+    var pts = [];
+    for(var j=0;j<segs;j++){
+      var a = (j/segs)*Math.PI*2;
+      pts.push(project(cx+Math.cos(a)*r, cy, cz+Math.sin(a)*r));
+    }
+    ctx.beginPath(); ctx.moveTo(pts[0].x,pts[0].y);
+    for(var j=1;j<segs;j++) ctx.lineTo(pts[j].x,pts[j].y);
+    ctx.closePath();
+    var alpha = i<3 ? 0.7 : 0.3;
+    ctx.strokeStyle = 'rgba(212,168,32,'+alpha+')';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+}
+
+// ── SPEAKER CONE ─────────────────────────────────────────────
+function drawSpeakerCone(cx,cy,cz){
+  for(var i=1;i<5;i++){
+    var r = i*0.1;
+    var segs = 28;
+    var pts = [];
+    for(var j=0;j<segs;j++){
+      var a = (j/segs)*Math.PI*2;
+      pts.push(project(cx+Math.cos(a)*r, cy, cz+Math.sin(a)*r));
+    }
+    ctx.beginPath(); ctx.moveTo(pts[0].x,pts[0].y);
+    for(var j=1;j<segs;j++) ctx.lineTo(pts[j].x,pts[j].y);
+    ctx.closePath();
+    ctx.strokeStyle='rgba(26,26,36,0.8)'; ctx.lineWidth=1; ctx.stroke();
+  }
+}
+
+// ── CONTROLS ──────────────────────────────────────────────────
+cv.addEventListener('mousedown',function(e){
+  if(document.querySelector('.ov.show')) return;
+  isDragging=true; lastMouse={x:e.clientX,y:e.clientY};
+});
+window.addEventListener('mouseup',function(){isDragging=false;});
+window.addEventListener('mousemove',function(e){
+  if(isDragging){
+    var dx=(e.clientX-lastMouse.x)*0.008;
+    var dy=(e.clientY-lastMouse.y)*0.008;
+    lastMouse={x:e.clientX,y:e.clientY};
+    if(e.shiftKey){tpanX+=dx*60;tpanY-=dy*60;}
+    else{targetAngle-=dx; targetTilt=Math.max(0.05,Math.min(1.5,targetTilt+dy));}
+  }
+  // Hover detection
+  if(!document.querySelector('.ov.show')){
+    var found=null;
+    for(var i=clickRegions.length-1;i>=0;i--){
+      var cr=clickRegions[i];
+      var dist=Math.hypot(e.clientX-cr.x, e.clientY-cr.y);
+      if(dist<cr.r){found=cr.id;break;}
+    }
+    hoveredId=found;
+    cv.style.cursor=found?'pointer':'default';
+    // Update tooltip position
+    var tip=document.getElementById('tip');
+    if(tip && found){tip.style.left=(e.clientX+14)+'px';tip.style.top=(e.clientY-5)+'px';}
+  }
+});
+cv.addEventListener('wheel',function(e){
+  targetZoom=Math.max(0.4,Math.min(2.5,targetZoom-e.deltaY*0.001));
+},{passive:true});
+cv.addEventListener('click',function(e){
+  if(document.querySelector('.ov.show')) return;
+  for(var i=clickRegions.length-1;i>=0;i--){
+    var cr=clickRegions[i];
+    if(Math.hypot(e.clientX-cr.x,e.clientY-cr.y)<cr.r){
+      selComp(cr.id); break;
+    }
+  }
+});
+// Touch
+var t0=null,pinch0=0;
+cv.addEventListener('touchstart',function(e){
+  if(e.touches.length===1) t0={x:e.touches[0].clientX,y:e.touches[0].clientY};
+  if(e.touches.length===2) pinch0=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
+},{passive:true});
+cv.addEventListener('touchmove',function(e){
+  if(e.touches.length===1&&t0){
+    var dx=(e.touches[0].clientX-t0.x)*0.01,dy=(e.touches[0].clientY-t0.y)*0.01;
+    targetAngle-=dx; targetTilt=Math.max(0.05,Math.min(1.5,targetTilt+dy));
+    t0={x:e.touches[0].clientX,y:e.touches[0].clientY};
+  }
+  if(e.touches.length===2){
+    var d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
+    targetZoom=Math.max(0.4,Math.min(2.5,targetZoom+(d-pinch0)*0.003));
+    pinch0=d;
+  }
+},{passive:true});
+
+// ── INSPECTOR ─────────────────────────────────────────────────
+function selComp(id){
+  selId=id;
+  var d=CDATA[id]; if(!d) return;
+  document.querySelectorAll('.tc').forEach(function(c){c.classList.remove('sel');});
+  var tc=document.getElementById('tc-'+id); if(tc) tc.classList.add('sel');
+  document.getElementById('cdot').style.background=d.c;
+  document.getElementById('ctit').textContent=d.name;
+  document.getElementById('cbdg').textContent=d.b;
+  document.getElementById('cbdg').style.color=d.c;
+  document.getElementById('cbdg').style.background=d.c+'22';
+  document.getElementById('cdesc').textContent=d.d;
+  document.getElementById('cspec').innerHTML=d.s.map(function(r){return '<span class="k">'+r[0]+':</span> <span class="v">'+r[1]+'</span>';}).join('<br>');
+  var sb=document.getElementById('sbtn');
+  sb.style.display='block'; sb.textContent='▶ '+d.a;
+  sb.style.background='linear-gradient(135deg,'+d.c+','+d.c+'88)'; sb.style.color='#fff';
+  Object.keys(CDATA).forEach(function(k){
+    var tc2=document.getElementById('tc-'+k);
+    if(tc2) tc2.style.borderColor=(k===id)?d.c:'';
+  });
+  // Auto-launch overlay for functional modules when clicked on 3D model
+  var autoLaunch={'nfc':openNFC,'btn':openNFC,'qr':function(){openQR();},'cam':function(){openOv('ov-pay');setTimeout(function(){document.getElementById('ps1').style.display='none';document.getElementById('ps2').style.display='block';startCamera();},80);setLCD('CAMERA ON','Liveness check','Scanning...');}};
+  if(autoLaunch[id]) setTimeout(autoLaunch[id],150);
+}
+function sel(id){selComp(id);}
+
+// ── SIMULATE ──────────────────────────────────────────────────
+function simSel(){
+  if(!selId) return;
+  var d=CDATA[selId]; if(!d) return;
+  switch(d.sim){
+    case 'boot': bootSeq(); break;
+    case 'mcu':  addEv('sys','MCU','ESP32-S3 @ 240MHz — all buses OK'); setLCD('MCU PING','All buses OK','240MHz nominal'); break;
+    case 'pcb':  addEv('sys','PCB','4-layer PCB traces verified'); break;
+    case 'oled': oledFlash=1; addEv('sys','OLED','SSD1306 128×64 refresh OK'); setLCD('OLED TEST','SSD1306 OK','128x64 px'); break;
+    case 'qr':   openQR(); break;
+    case 'nfc':  openNFC(); break;
+    case 'cam':  openOv('ov-pay'); setTimeout(function(){document.getElementById('ps1').style.display='none';document.getElementById('ps2').style.display='block';startCamera();},80); setLCD('CAMERA ON','Liveness check','Scanning...'); break;
+    case 'spk':  speakDemo(); addEv('pay','SPEAKER','Hindi TTS playing'); setLCD('VOICE OUT','PAM8403 → 3W','I2S audio'); break;
+    case 'btn':  openNFC(); break;
+    case 'psu':  addEv('sys','PSU','5.00V ✓  3.3V: 3.31V ✓  I: 0.82A'); setLCD('POWER OK','5.00V  3.31V','Current: 0.82A'); break;
+    case 'wifi': addEv('sys','WIFI','RSSI:-52dBm  IP:192.168.1.45'); setLCD('WIFI OK','-52dBm signal','webhook 200 OK'); break;
+  }
+}
+
+// ── CREDIT SCORE ──────────────────────────────────────────────
+function calcScore(){
+  var log=JSON.parse(localStorage.getItem('spectra_txns')||'[]');
+  var pays=log.filter(function(e){return e.type==='PAYMENT_SUCCESS';});
+  var blocked=log.filter(function(e){return e.type==='PAYMENT_BLOCKED';}).length;
+  var txns=pays.length;
+  var vol=pays.reduce(function(s,e){return s+(e.data.amount||0);},0);
+  var days=new Set(pays.map(function(e){return new Date(e.timestamp).toDateString();})).size;
+  var avg=txns>0?vol/txns:0;
+  // FIXED SCORING: Must have real history — 5 payments should NOT qualify for ₹15k loan
+  // Frequency: needs 20+ txns to earn anything meaningful
+  var fq=txns<20?0:Math.min(250,Math.floor(txns/20)*50);
+  // Volume: needs ₹20,000+ total
+  var vl=vol<20000?0:Math.min(300,Math.floor(vol/5000)*25);
+  // Consistency (days): needs 7+ days
+  var dayBonus=days<7?0:Math.min(100,days*5);
+  // Average transaction quality
+  var av=avg>=5000?80:avg>=2000?50:avg>=500?20:0;
+  // Penalty for blocked
+  var pen=blocked*80;
+  var score=Math.max(300,Math.min(900,Math.round(300+fq+vl+dayBonus+av-pen)));
+  // Loan table: realistic thresholds requiring genuine business history
+  // Score 750 needs 20+ txns + ₹20k vol + 7+ days minimum to reach
+  var loanTable=[[875,300000,'₹3,00,000'],[825,150000,'₹1,50,000'],[775,75000,'₹75,000'],[725,35000,'₹35,000'],[675,15000,'₹15,000'],[625,5000,'₹5,000']];
+  var loan=loanTable.find(function(r){return score>=r[0];})||null;
+  return {score:score,txns:txns,vol:vol,days:days,loan:loan};
+}
+function scoreRating(s){
+  if(s>=850)return{t:'Excellent',c:'#00e676'};
+  if(s>=750)return{t:'Very Good',c:'#00d4ff'};
+  if(s>=700)return{t:'Good',c:'#38bdf8'};
+  if(s>=650)return{t:'Fair',c:'#ffd60a'};
+  if(s>=600)return{t:'Developing',c:'#ff8c00'};
+  return{t:'Building...',c:'rgba(255,255,255,.3)'};
+}
+
+// ── NFC POPUP ─────────────────────────────────────────────────
+function openNFC(){
+  var sc=calcScore(),sr=scoreRating(sc.score);
+  document.getElementById('nscn').textContent=sc.score;
+  document.getElementById('nscr').textContent=sr.t; document.getElementById('nscr').style.color=sr.c;
+  document.getElementById('nscb').style.width=((sc.score-300)/600*100)+'%';
+  document.getElementById('nf1').textContent=sc.txns;
+  document.getElementById('nf2').textContent='₹'+Math.round(sc.vol).toLocaleString('en-IN');
+  document.getElementById('nf3').textContent=sc.days;
+  if(sc.loan){document.getElementById('nle').style.display='block';document.getElementById('nlno').style.display='none';document.getElementById('nla').textContent=sc.loan[2];}
+  else{document.getElementById('nle').style.display='none';document.getElementById('nlno').style.display='block';}
+  ['ns1','ns2','ns3','ns4'].forEach(function(id,i){document.getElementById(id).style.display=i===0?'block':'none';});
+  // sync wallet balance display in NFC overlay
+  var nwb=document.getElementById('nwb'); if(nwb) nwb.textContent=walBal.toLocaleString('en-IN');
+  openOv('ov-nfc');
+  setLCD('NFC ACTIVE','Score: '+sc.score,'Tap to pay');
+}
+
+// ── INPUT / PIN ───────────────────────────────────────────────
+var dispMap={pay:'pa',kht:'ka',nfc:'na',qr:'qr-a'};
+var pinDotMap={pay:'pp',kht:'kp',nfc:'np2',qr:'qr-pp'};
+function nI(ctx2,d){
+  if(amts[ctx2].length>=6)return;
+  amts[ctx2]+=d;
+  var el=document.getElementById(dispMap[ctx2]); if(el)el.textContent=parseInt(amts[ctx2]||'0').toLocaleString('en-IN');
+  if(ctx2==='pay'){var amt=parseInt(amts.pay||'0');var h=document.getElementById('phint');if(h){h.textContent=amt>=2500?'⚠️ Liveness check required':'Amounts above ₹2,500 require liveness';h.style.color=amt>=2500?'var(--red)':'#444';}}
+  if(ctx2==='qr'&&qrMode==='pay'){var amt2=parseInt(amts.qr||'0');var h2=document.getElementById('qr-hint');if(h2){h2.textContent=amt2>=2500?'⚠️ Liveness check required for this amount':'Amounts above ₹2,500 require liveness check';h2.style.color=amt2>=2500?'var(--red)':'#444';}}
+}
+function nD(ctx2){amts[ctx2]=amts[ctx2].slice(0,-1);var el=document.getElementById(dispMap[ctx2]);if(el)el.textContent=parseInt(amts[ctx2]||'0').toLocaleString('en-IN');}
+function pI(ctx2,d){
+  if(pins[ctx2].length>=4)return;
+  pins[ctx2]+=d; updDots(ctx2);
+  if(pins[ctx2].length===4)setTimeout(function(){doPin(ctx2);},300);
+}
+function pD(ctx2){pins[ctx2]=pins[ctx2].slice(0,-1);updDots(ctx2);}
+function updDots(ctx2){var dots=document.querySelectorAll('#'+pinDotMap[ctx2]+' .pd');dots.forEach(function(d,i){d.classList.toggle('f',i<pins[ctx2].length);});}
+
+// ── PAY FLOW ──────────────────────────────────────────────────
+function payGo(){
+  var amt=parseInt(amts.pay||'0');
+  if(amt<=0){toast('⚠️','Enter a valid amount');return;}
+  if(amt>walBal){toast('❌','Insufficient wallet balance');return;}
+  pendAmt=amt; setLCD('PAYMENT','₹'+amt,'Verifying...');
+  if(amt>=2500){
+    document.getElementById('ps1').style.display='none';
+    document.getElementById('ps2').style.display='block';
+    document.getElementById('ps2t').textContent='🎥 Liveness Check';
+    document.getElementById('ps2s').textContent='₹'+amt.toLocaleString('en-IN')+' requires human verification';
+    document.getElementById('lvs').className='lv chk'; document.getElementById('lvs').textContent='🔍 Scanning for human presence...';
+    document.getElementById('lvpb').style.display='none';
+    setLCD('LIVENESS','Camera active','₹'+amt+' pending'); startCamera();
+  }else{
+    document.getElementById('ps1').style.display='none';
+    document.getElementById('ps3').style.display='block';
+    document.getElementById('ps3s').textContent='Confirm ₹'+amt.toLocaleString('en-IN');
+    pins.pay=''; updDots('pay'); setLCD('ENTER PIN','****','₹'+amt);
+  }
+}
+function showPin(){
+  stopCamera();
+  document.getElementById('ps2').style.display='none';
+  document.getElementById('ps3').style.display='block';
+  document.getElementById('ps3s').textContent='Confirm ₹'+pendAmt.toLocaleString('en-IN');
+  pins.pay=''; updDots('pay'); setLCD('ENTER PIN','****','₹'+pendAmt);
+}
+function startCamera(){
+  var v=document.getElementById('camv'); v.style.display='block';
+  camLedOn=true;
+  navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:320,height:240}})
+    .then(function(s){
+      camStream=s; v.srcObject=s;
+      v.onloadedmetadata=function(){ v.play(); runLV(true); };
+    })
+    .catch(function(){
+      v.style.display='none';
+      runLV(false); // no camera — simulate
+    });
+}
+
+function runLV(hasCam){
+  var statusEl=document.getElementById('lvs');
+  var proceedBtn=document.getElementById('lvpb');
+  statusEl.className='lv chk';
+  statusEl.textContent='🔍 Scanning for human presence...';
+  proceedBtn.style.display='none';
+  setLCD('LIVENESS','Scanning...','Hold still');
+
+  if(hasCam && typeof FaceDetector!=='undefined'){
+    // Native FaceDetector API (Chrome Android / experimental)
+    var fd=new FaceDetector({fastMode:true,maxDetectedFaces:1});
+    var vEl=document.getElementById('camv');
+    var attempts=0;
+    var cvs=document.createElement('canvas'); cvs.width=160; cvs.height=120;
+    var ctx3=cvs.getContext('2d');
+    function tryFD(){
+      attempts++;
+      try{ ctx3.drawImage(vEl,0,0,160,120); }catch(e){}
+      fd.detect(cvs).then(function(faces){
+        if(faces.length>0){ lvPassAnim(); }
+        else if(attempts<10){ lvTmr=setTimeout(tryFD,400); }
+        else { lvFailAnim(); }
+      }).catch(function(){ lvCanvasLV(vEl); });
+    }
+    lvTmr=setTimeout(tryFD,900);
+
+  } else if(hasCam){
+    // Fallback: skin-tone pixel analysis on live frames
+    lvCanvasLV(document.getElementById('camv'));
+
+  } else {
+    // No camera access — check page visibility as proxy for "someone is there"
+    lvTmr=setTimeout(function(){
+      var pass=document.visibilityState==='visible' && Math.random()>0.3;
+      if(pass) lvPassAnim(); else lvFailAnim();
+    },3200);
+  }
+}
+
+function lvCanvasLV(videoEl){
+  var cvs=document.createElement('canvas'); cvs.width=80; cvs.height=60;
+  var ctx3=cvs.getContext('2d');
+  var checks=0;
+  function analyse(){
+    checks++;
+    try{
+      ctx3.drawImage(videoEl,0,0,80,60);
+      // Sample the upper-center region where a face would appear
+      var data=ctx3.getImageData(20,4,40,36).data;
+      var skinPx=0, total=data.length/4;
+      for(var i=0;i<data.length;i+=4){
+        var r=data[i],g=data[i+1],b=data[i+2];
+        // Skin-tone heuristic: reddish, not too dark, r > g > b
+        if(r>60 && r>g && g>=b && (r-g)>8 && r<245) skinPx++;
+      }
+      if(skinPx/total>0.12){ lvPassAnim(); return; }
+    }catch(e){}
+    if(checks<12) lvTmr=setTimeout(analyse,350);
+    else lvFailAnim();
+  }
+  lvTmr=setTimeout(analyse,1000);
+}
+
+function lvPassAnim(){
+  stopCamera();
+  document.getElementById('lvs').className='lv ok';
+  document.getElementById('lvs').textContent='✅ Human detected — verified!';
+  document.getElementById('lvpb').style.display='block';
+  setLCD('HUMAN DETECTED','Liveness OK ✓','Proceed to PIN');
+  camLedOn=false; blinkLED(3,4);
+}
+
+function lvFailAnim(){
+  stopCamera();
+  document.getElementById('lvs').className='lv fail';
+  document.getElementById('lvs').textContent='🚫 No human detected — Payment blocked!';
+  setLCD('⚠ BLOCKED','No human found','Payment denied');
+  blinkLED(3,8);
+  fire('PAYMENT_BLOCKED',{amount:pendAmt,merchant:"Rahul's Kirana Store",user:'Lavish'});
+  addEv('blk','BLOCKED','₹'+pendAmt.toLocaleString('en-IN')+' — liveness failed');
+  speak('Payment block kar diya gaya. Camera ke saamne koi insaan nahi mila. Merchant ko alert bheja gaya.');
+  toast('🚫','Payment blocked — no human detected!',4500);
+  setTimeout(function(){ clov('ov-pay'); resetPaySteps(); },4500);
+}
+
+function stopCamera(){
+  if(camStream){camStream.getTracks().forEach(function(t){t.stop();});camStream=null;}
+  if(lvTmr){clearTimeout(lvTmr);lvTmr=null;}
+  var v=document.getElementById('camv'); if(v)v.style.display='none';
+  camLedOn=false;
+}
+function cancelCam(){stopCamera();}
+
+function khtNext(){
+  var amt=parseInt(amts.kht||'0');
+  if(amt<=0){toast('⚠️','Enter a valid amount');return;}
+  document.getElementById('ks1').style.display='none';
+  document.getElementById('ks2').style.display='block';
+  pins.kht=''; updDots('kht'); setLCD('KHATA','₹'+amt+' Udhaar','Enter PIN');
+}
+function nfcTap(){
+  document.getElementById('ns1').style.display='none';
+  document.getElementById('ns2').style.display='block';
+  amts.nfc=''; document.getElementById('na').textContent='0';
+  setLCD('NFC HANDSHAKE','13.56MHz','Reading wallet...');
+}
+function nfcPin(){
+  var amt=parseInt(amts.nfc||'0');
+  if(amt<=0){toast('⚠️','Enter amount');return;}
+  if(amt>walBal){toast('❌','Insufficient wallet');return;}
+  document.getElementById('ns2').style.display='none';
+  document.getElementById('ns3').style.display='block';
+  pins.nfc=''; updDots('nfc'); setLCD('OFFLINE PIN','No internet','₹'+amt);
+}
+
+function doPin(ctx2){
+  if(ctx2==='pay'){
+    stopCamera();
+    var amt=pendAmt;
+    walBal-=amt; saveWallet(); document.getElementById('pwb').textContent=walBal.toLocaleString('en-IN');
+    document.getElementById('ps3').style.display='none'; document.getElementById('ps4').style.display='block';
+    document.getElementById('ps4t').textContent='₹'+amt.toLocaleString('en-IN')+' Paid!';
+    document.getElementById('ps4m').textContent='Payment confirmed. Voice playing...';
+    fire('PAYMENT_SUCCESS',{amount:amt,merchant:"Rahul's Kirana Store",type:'UPI',user:'Lavish'});
+    speak('Lavish ne Rahul ki Kirana Store ko '+amt+' rupaye pay kiye');
+    addEv('pay','PAYMENT','₹'+amt.toLocaleString('en-IN')+' paid via UPI');
+    setLCD('PAYMENT SUCCESS','₹'+amt+' PAID','Thank you Lavish!');
+    blinkLED(0,6); toast('✅','₹'+amt.toLocaleString('en-IN')+' paid!');
+    pins.pay=''; amts.pay='';
+    setTimeout(function(){clov('ov-pay');resetPaySteps();},3000);
+  }else if(ctx2==='kht'){
+    var amt=parseInt(amts.kht||'0');
+    khtBal+=amt; saveWallet(); document.getElementById('kbd').textContent=khtBal.toLocaleString('en-IN');
+    document.getElementById('ks2').style.display='none'; document.getElementById('ks3').style.display='block';
+    document.getElementById('ks3m').textContent='₹'+amt.toLocaleString('en-IN')+' added. Total: ₹'+khtBal.toLocaleString('en-IN');
+    fire('KHATA_ADD',{amount:amt,merchant:"Rahul's Kirana Store",user:'Lavish'});
+    speak('Lavish ke account mein '+amt+' rupaye udhaar add hua');
+    addEv('kht','KHATA','₹'+amt+' Udhaar added');
+    setLCD('KHATA UPDATED','₹'+amt+' Udhaar','Total: ₹'+khtBal);
+    toast('📒','₹'+amt+' added to Khata');
+    pins.kht=''; amts.kht='';
+    setTimeout(function(){clov('ov-kht');resetKhtSteps();},3000);
+  }else if(ctx2==='nfc'){
+    var amt=parseInt(amts.nfc||'0');
+    walBal-=amt; saveWallet(); document.getElementById('nwb').textContent=walBal.toLocaleString('en-IN');
+    document.getElementById('ns3').style.display='none'; document.getElementById('ns4').style.display='block';
+    document.getElementById('ns4m').textContent='₹'+amt.toLocaleString('en-IN')+' offline. No internet!';
+    fire('PAYMENT_SUCCESS',{amount:amt,merchant:"Rahul's Kirana Store",type:'NFC_OFFLINE',user:'Lavish'});
+    speak('Lavish ne NFC se '+amt+' rupaye offline pay kiye');
+    addEv('nfc','NFC PAY','₹'+amt+' via NFC offline');
+    setLCD('NFC DONE','₹'+amt+' OFFLINE','Wallet: ₹'+walBal);
+    blinkLED(2,6); toast('📡','₹'+amt+' via NFC!');
+    pins.nfc=''; amts.nfc='';
+    setTimeout(function(){clov('ov-nfc');resetNFCSteps();},3000);
+  }else if(ctx2==='qr'){
+    qrStopCam();
+    var amt=parseInt(amts.qr||'0')||pendAmt;
+    document.getElementById('qr-s3').style.display='none';
+    document.getElementById('qr-s4').style.display='block';
+    if(qrMode==='pay'){
+      walBal-=amt; saveWallet();
+      document.getElementById('qr-wb').textContent=walBal.toLocaleString('en-IN');
+      document.getElementById('qr-wb2').textContent=walBal.toLocaleString('en-IN');
+      document.getElementById('pwb').textContent=walBal.toLocaleString('en-IN');
+      document.getElementById('qr-suc-icon').textContent='✅';
+      document.getElementById('qr-suc-title').textContent='₹'+amt.toLocaleString('en-IN')+' Paid!';
+      document.getElementById('qr-suc-msg').textContent='UPI payment sent to Rahul\'s Kirana Store. Voice playing...';
+      fire('PAYMENT_SUCCESS',{amount:amt,merchant:"Rahul's Kirana Store",type:'UPI',user:'Lavish'});
+      speak('Lavish ne Rahul ki Kirana Store ko '+amt+' rupaye UPI se pay kiye');
+      addEv('pay','QR PAY','₹'+amt.toLocaleString('en-IN')+' paid via UPI QR');
+      setLCD('QR PAYMENT','₹'+amt+' PAID','Thank you Lavish!');
+      blinkLED(0,6); toast('✅','₹'+amt.toLocaleString('en-IN')+' paid via QR!');
+    } else {
+      khtBal+=amt; saveWallet();
+      document.getElementById('kbd').textContent=khtBal.toLocaleString('en-IN');
+      document.getElementById('qr-suc-icon').textContent='📒';
+      document.getElementById('qr-suc-title').textContent='Udhaar Added!';
+      document.getElementById('qr-suc-msg').textContent='₹'+amt.toLocaleString('en-IN')+' recorded in Rahul\'s ledger. Total: ₹'+khtBal.toLocaleString('en-IN');
+      fire('KHATA_ADD',{amount:amt,merchant:"Rahul's Kirana Store",user:'Lavish'});
+      speak('Lavish ke account mein '+amt+' rupaye udhaar add hua Rahul ki Kirana Store mein');
+      addEv('kht','QR KHATA','₹'+amt.toLocaleString('en-IN')+' Udhaar via QR');
+      setLCD('KHATA UPDATED','₹'+amt+' Udhaar','Total: ₹'+khtBal);
+      toast('📒','₹'+amt+' added to Khata!');
+    }
+    pins.qr=''; amts.qr='';
+    setTimeout(function(){qrClose();},3000);
+  }
+}
+function resetPaySteps(){['ps1','ps2','ps3','ps4'].forEach(function(id,i){document.getElementById(id).style.display=i===0?'block':'none';});}
+function resetKhtSteps(){['ks1','ks2','ks3'].forEach(function(id,i){document.getElementById(id).style.display=i===0?'block':'none';});}
+function resetNFCSteps(){['ns1','ns2','ns3','ns4'].forEach(function(id,i){document.getElementById(id).style.display=i===0?'block':'none';});}
+
+// ── LCD ───────────────────────────────────────────────────────
+function setLCD(l1,l2,l3){
+  document.getElementById('l1').innerHTML=l1+' <span class="cur"></span>';
+  document.getElementById('l2').textContent=l2||'';
+  document.getElementById('l3').textContent=l3||'';
+  oledFlash=1;
+}
+
+// ── OVERLAYS ─────────────────────────────────────────────────
+function openOv(id){document.getElementById(id).classList.add('show');}
+function clov(id){
+  document.getElementById(id).classList.remove('show');
+  if(id==='ov-pay') stopCamera();
+  var sc=calcScore();
+  setLCD('SPECTRA BOX v1.0','Score:'+sc.score+' Txns:'+sc.txns,'lavish@spectra | Delhi');
+}
+
+// ── QR FLOW ───────────────────────────────────────────────────
+var qrMode='pay'; // 'pay' or 'add'
+var qrCamStream=null, qrLvTmr=null;
+
+function openQR(){
+  // sync wallet display
+  document.getElementById('qr-wb').textContent=walBal.toLocaleString('en-IN');
+  document.getElementById('qr-wb2').textContent=walBal.toLocaleString('en-IN');
+  qrResetAll();
+  openOv('ov-qr');
+  setLCD('QR ACTIVE','Scan to Pay/Add','rahul@spectra');
+}
+function qrClose(){
+  qrStopCam();
+  clov('ov-qr');
+  qrResetAll();
+}
+function qrResetAll(){
+  ['qr-s0','qr-s1','qr-s2','qr-s3','qr-s4'].forEach(function(id,i){
+    var el=document.getElementById(id); if(el) el.style.display=i===0?'block':'none';
+  });
+  amts.qr=''; pins.qr='';
+  var a=document.getElementById('qr-a'); if(a) a.textContent='0';
+  var h=document.getElementById('qr-hint'); if(h) h.textContent=' ';
+  var v=document.getElementById('qr-camv'); if(v) v.style.display='none';
+}
+function qrBack(target){
+  ['qr-s0','qr-s1','qr-s2','qr-s3','qr-s4'].forEach(function(id){
+    var el=document.getElementById(id); if(el) el.style.display='none';
+  });
+  var t=document.getElementById(target); if(t) t.style.display='block';
+  if(target==='s0'){ amts.qr=''; var a=document.getElementById('qr-a'); if(a) a.textContent='0'; }
+}
+function qrChoose(mode){
+  qrMode=mode;
+  amts.qr=''; pins.qr='';
+  var a=document.getElementById('qr-a'); if(a) a.textContent='0';
+  document.getElementById('qr-s0').style.display='none';
+  document.getElementById('qr-s1').style.display='block';
+  if(mode==='pay'){
+    document.getElementById('qr-s1-title').textContent='💸 Pay via UPI QR';
+    document.getElementById('qr-s1-sub').textContent='Rahul\'s Kirana Store';
+    document.getElementById('qr-amt-label').textContent='ENTER AMOUNT TO PAY';
+    document.getElementById('qr-amt-btn').textContent='Pay Now →';
+    document.getElementById('qr-amt-btn').className='cta grn';
+    document.getElementById('qr-hint').textContent='Amounts above ₹2,500 require liveness check';
+  } else {
+    document.getElementById('qr-s1-title').textContent='📒 Add Udhaar (Khata)';
+    document.getElementById('qr-s1-sub').textContent='Record credit with Rahul\'s Kirana Store';
+    document.getElementById('qr-amt-label').textContent='ENTER UDHAAR AMOUNT';
+    document.getElementById('qr-amt-btn').textContent='Add to Khata →';
+    document.getElementById('qr-amt-btn').className='cta pri';
+    document.getElementById('qr-hint').textContent='This will be recorded in the digital ledger';
+  }
+  setLCD(mode==='pay'?'QR PAY':'QR KHATA','Enter amount','rahul@spectra');
+}
+function qrAmtNext(){
+  var amt=parseInt(amts.qr||'0');
+  if(amt<=0){toast('⚠️','Enter a valid amount');return;}
+  if(qrMode==='pay'&&amt>walBal){toast('❌','Insufficient wallet balance');return;}
+  pendAmt=amt;
+  if(qrMode==='pay'&&amt>=2500){
+    // Liveness required
+    document.getElementById('qr-s1').style.display='none';
+    document.getElementById('qr-s2').style.display='block';
+    document.getElementById('qr-live-sub').textContent='₹'+amt.toLocaleString('en-IN')+' requires human verification';
+    document.getElementById('qr-lvs').className='lv chk';
+    document.getElementById('qr-lvs').textContent='🔍 Scanning for human presence...';
+    document.getElementById('qr-lv-btn').style.display='none';
+    setLCD('LIVENESS CHECK','Camera active','₹'+amt+' pending');
+    qrStartCam();
+  } else {
+    // Skip liveness → go straight to PIN
+    document.getElementById('qr-s1').style.display='none';
+    document.getElementById('qr-s3').style.display='block';
+    document.getElementById('qr-pin-title').textContent=qrMode==='pay'?'🔐 Enter UPI PIN':'🔐 Confirm with PIN';
+    document.getElementById('qr-pin-sub').textContent=(qrMode==='pay'?'Confirm ₹':'Add ₹')+amt.toLocaleString('en-IN')+(qrMode==='pay'?' to Rahul\'s Kirana Store':' as Udhaar');
+    pins.qr=''; updDots('qr');
+    setLCD('ENTER PIN','****','₹'+amt);
+  }
+}
+function qrStartCam(){
+  var v=document.getElementById('qr-camv'); v.style.display='block';
+  navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:320,height:240}})
+    .then(function(s){
+      qrCamStream=s; v.srcObject=s;
+      v.onloadedmetadata=function(){ v.play(); qrRunLV(true); };
+    })
+    .catch(function(){
+      v.style.display='none';
+      qrRunLV(false);
+    });
+}
+
+function qrRunLV(hasCam){
+  var statusEl=document.getElementById('qr-lvs');
+  var btn=document.getElementById('qr-lv-btn');
+  statusEl.className='lv chk';
+  statusEl.textContent='🔍 Scanning for human presence...';
+  btn.style.display='none';
+  setLCD('LIVENESS','Scanning...','Hold still');
+
+  if(hasCam && typeof FaceDetector!=='undefined'){
+    var fd=new FaceDetector({fastMode:true,maxDetectedFaces:1});
+    var vEl=document.getElementById('qr-camv');
+    var attempts=0;
+    var cvs=document.createElement('canvas'); cvs.width=160; cvs.height=120;
+    var ctx3=cvs.getContext('2d');
+    function tryFD(){
+      attempts++;
+      try{ ctx3.drawImage(vEl,0,0,160,120); }catch(e){}
+      fd.detect(cvs).then(function(faces){
+        if(faces.length>0){ qrLvPassAnim(); }
+        else if(attempts<10){ qrLvTmr=setTimeout(tryFD,400); }
+        else { qrLvFailAnim(); }
+      }).catch(function(){ qrCanvasLV(vEl); });
+    }
+    qrLvTmr=setTimeout(tryFD,900);
+
+  } else if(hasCam){
+    qrCanvasLV(document.getElementById('qr-camv'));
+  } else {
+    qrLvTmr=setTimeout(function(){
+      var pass=document.visibilityState==='visible' && Math.random()>0.3;
+      if(pass) qrLvPassAnim(); else qrLvFailAnim();
+    },3200);
+  }
+}
+
+function qrCanvasLV(videoEl){
+  var cvs=document.createElement('canvas'); cvs.width=80; cvs.height=60;
+  var ctx3=cvs.getContext('2d');
+  var checks=0;
+  function analyse(){
+    checks++;
+    try{
+      ctx3.drawImage(videoEl,0,0,80,60);
+      var data=ctx3.getImageData(20,4,40,36).data;
+      var skinPx=0, total=data.length/4;
+      for(var i=0;i<data.length;i+=4){
+        var r=data[i],g=data[i+1],b=data[i+2];
+        if(r>60&&r>g&&g>=b&&(r-g)>8&&r<245) skinPx++;
+      }
+      if(skinPx/total>0.12){ qrLvPassAnim(); return; }
+    }catch(e){}
+    if(checks<12) qrLvTmr=setTimeout(analyse,350);
+    else qrLvFailAnim();
+  }
+  qrLvTmr=setTimeout(analyse,1000);
+}
+
+function qrLvPassAnim(){
+  qrStopCam();
+  document.getElementById('qr-lvs').className='lv ok';
+  document.getElementById('qr-lvs').textContent='✅ Human detected — verified!';
+  document.getElementById('qr-lv-btn').style.display='block';
+  setLCD('HUMAN DETECTED','Liveness OK ✓','Proceed to PIN');
+}
+
+function qrLvFailAnim(){
+  qrStopCam();
+  document.getElementById('qr-lvs').className='lv fail';
+  document.getElementById('qr-lvs').textContent='🚫 No human detected — Payment blocked!';
+  setLCD('⚠ BLOCKED','No human found','Payment denied');
+  blinkLED(3,8);
+  fire('PAYMENT_BLOCKED',{amount:pendAmt,merchant:"Rahul's Kirana Store",user:'Lavish'});
+  addEv('blk','BLOCKED','₹'+pendAmt.toLocaleString('en-IN')+' — QR liveness failed');
+  speak('Payment block kar diya gaya. Camera ke saamne koi insaan nahi mila. Merchant ko alert bheja gaya.');
+  toast('🚫','Payment blocked — no human detected!',4500);
+  setTimeout(function(){ qrClose(); },4500);
+}
+
+function qrStopCam(){
+  if(qrCamStream){qrCamStream.getTracks().forEach(function(t){t.stop();});qrCamStream=null;}
+  if(qrLvTmr){clearTimeout(qrLvTmr);qrLvTmr=null;}
+  var v=document.getElementById('qr-camv'); if(v) v.style.display='none';
+}
+function qrCancelCam(){qrStopCam();qrBack('qr-s1');}
+function qrLiveDone(){
+  qrStopCam();
+  document.getElementById('qr-s2').style.display='none';
+  document.getElementById('qr-s3').style.display='block';
+  document.getElementById('qr-pin-title').textContent='🔐 Enter UPI PIN';
+  document.getElementById('qr-pin-sub').textContent='Confirm ₹'+pendAmt.toLocaleString('en-IN')+' to Rahul\'s Kirana Store';
+  pins.qr=''; updDots('qr');
+  setLCD('ENTER PIN','****','₹'+pendAmt);
+}
+// Legacy alias
+function simulateQRScan(){ openQR(); }
+function qrScanGo(){ openQR(); }
+
+// ── WALLET SAVE ───────────────────────────────────────────────
+function saveWallet(){
+  localStorage.setItem('spectra_wallet',String(walBal));
+  localStorage.setItem('spectra_khata',String(khtBal));
+  // Trigger storage event for other tabs
+  localStorage.setItem('spectra_last_tx_ts', Date.now().toString());
+}
+
+// ── DATA HELPERS ──────────────────────────────────────────────
+function fire(type,data){
+  var p={type:type,data:data,timestamp:Date.now()};
+  localStorage.setItem('spectra_event',JSON.stringify(p));
+  var log=JSON.parse(localStorage.getItem('spectra_txns')||'[]');
+  log.unshift(p); localStorage.setItem('spectra_txns',JSON.stringify(log.slice(0,200)));
+}
+function addEv(type,tag,msg){
+  var f=document.getElementById('evf');
+  var d=document.createElement('div'); d.className='ev '+type;
+  d.innerHTML='<div class="et">'+tag+'</div><div class="em">'+msg+'</div>';
+  f.insertBefore(d,f.firstChild);
+  while(f.children.length>6) f.removeChild(f.lastChild);
+  setTimeout(function(){d.style.opacity='0.3';d.style.transition='opacity 1s';},5000);
+}
+function speak(txt){
+  if(!('speechSynthesis' in window)) return;
+  window.speechSynthesis.cancel();
+  var u=new SpeechSynthesisUtterance(txt); u.lang='hi-IN'; u.rate=0.88; u.pitch=1.05;
+  window.speechSynthesis.speak(u);
+}
+function speakDemo(){speak('Lavish ne Rahul ki Kirana Store ko paanch sau rupaye pay kiye');}
+function toast(icon,txt,dur){
+  var t=document.getElementById('toast');
+  document.getElementById('ti').textContent=icon; document.getElementById('tt').textContent=txt;
+  t.style.display='flex'; t.classList.add('sh');
+  setTimeout(function(){t.classList.remove('sh');setTimeout(function(){t.style.display='none';},400);},dur||3200);
+}
+function blinkLED(idx,n){
+  var c=0; var iv=setInterval(function(){
+    ledPulse[idx]=(c%2===0)?1:0; c++;
+    if(c>=n*2) clearInterval(iv);
+  },160);
+}
+
+// ── VIEW CONTROLS ─────────────────────────────────────────────
+function toggleExplode(){exploded=!exploded;var b=document.getElementById('bexp');b.classList.toggle('on',exploded);b.textContent=exploded?'🧩 Assemble':'💥 Explode';}
+function toggleWires(){wiresOn=!wiresOn;document.getElementById('bwire').classList.toggle('on',wiresOn);}
+function toggleRot(){rotOn=!rotOn;document.getElementById('brot').classList.toggle('on',rotOn);}
+function toggleXray(){xrayOn=!xrayOn;document.getElementById('bxr').classList.toggle('on',xrayOn);}
+function resetCam(){targetAngle=0.55;targetTilt=0.42;targetZoom=1.0;tpanX=0;tpanY=0;}
+
+// ── STORAGE LISTENER ──────────────────────────────────────────
+window.addEventListener('storage',function(e){
+  // Sync wallet/khata balance from user.html
+  if(e.key==='spectra_wallet'&&e.newValue){
+    walBal=parseInt(e.newValue);
+    document.getElementById('pwb').textContent=walBal.toLocaleString('en-IN');
+    var nwb=document.getElementById('nwb'); if(nwb) nwb.textContent=walBal.toLocaleString('en-IN');
+    var qwb=document.getElementById('qr-wb'); if(qwb) qwb.textContent=walBal.toLocaleString('en-IN');
+    var qwb2=document.getElementById('qr-wb2'); if(qwb2) qwb2.textContent=walBal.toLocaleString('en-IN');
+  }
+  if(e.key==='spectra_khata'&&e.newValue){
+    khtBal=parseInt(e.newValue);
+    var kbd=document.getElementById('kbd'); if(kbd) kbd.textContent=khtBal.toLocaleString('en-IN');
+  }
+  if(e.key!=='spectra_event'||!e.newValue) return;
+  var ev=JSON.parse(e.newValue);
+  if(ev.type==='PAYMENT_SUCCESS'){
+    addEv('pay','PAYMENT','₹'+ev.data.amount+' from '+(ev.data.user||'Customer'));
+    setLCD('✓ PAID ₹'+ev.data.amount,(ev.data.type==='NFC_OFFLINE'?'NFC Offline':'UPI QR'),(ev.data.user||'Customer')+' → Rahul');
+    blinkLED(0,6); blinkLED(2,4);
+    // Auto-close 3D overlay after payment from user portal
+    setTimeout(function(){var sc=calcScore();setLCD('SPECTRA BOX v1.0','Score:'+sc.score+' Txns:'+sc.txns,'rahul@spectra | Delhi');},5000);
+  } else if(ev.type==='KHATA_ADD'){
+    addEv('kht','KHATA','Udhaar +₹'+ev.data.amount+' '+(ev.data.user||''));
+    setLCD('KHATA UPDATED','Udhaar +₹'+ev.data.amount,(ev.data.user||'Customer'));
+    setTimeout(function(){var sc=calcScore();setLCD('SPECTRA BOX v1.0','Score:'+sc.score+' Txns:'+sc.txns,'rahul@spectra | Delhi');},5000);
+  } else if(ev.type==='PAYMENT_BLOCKED'){
+    addEv('blk','BLOCKED','₹'+ev.data.amount+' — liveness fail');
+    setLCD('⚠ BLOCKED','No human found','Security alert');
+    blinkLED(3,8);
+    setTimeout(function(){setLCD('SPECTRA BOX v1.0','Ready','rahul@spectra');},5000);
+  }
+});
+
+// ── BOOT SEQUENCE ────────────────────────────────────────────
+function bootSeq(){
+  var steps=[
+    {t:'sys',tag:'[0.0s]',msg:'PSU 5V stable',          l:['BOOTING...','PSU 5V OK','Rail check']},
+    {t:'sys',tag:'[0.2s]',msg:'ESP32-S3 boot OK',        l:['ESP32 START','Bootloader','Core 0+1 up']},
+    {t:'sys',tag:'[0.5s]',msg:'WiFi connecting...',      l:['WIFI CONNECT','Scanning','2.4 GHz']},
+    {t:'sys',tag:'[0.9s]',msg:'WiFi OK — 192.168.1.45', l:['WIFI ONLINE','192.168.1.45','-52dBm']},
+    {t:'sys',tag:'[1.2s]',msg:'OLED I2C 0x3C ready',    l:['OLED INIT','I2C 0x3C OK','128x64 px']},
+    {t:'sys',tag:'[1.5s]',msg:'NFC PN532 v1.6 ready',   l:['NFC MODULE','PN532 v1.6','13.56 MHz']},
+    {t:'sys',tag:'[1.8s]',msg:'QR panel backlight on',   l:['QR PANEL','LED active','lavish@spectra']},
+    {t:'sys',tag:'[2.1s]',msg:'Camera OV2640 DVP OK',    l:['CAMERA INIT','OV2640 OK','Liveness rdy']},
+    {t:'pay',tag:'READY', msg:'✓ Spectra Box operational!',l:['SPECTRA BOX','READY  ✓','lavish@spectra']},
+  ];
+  steps.forEach(function(s,i){
+    setTimeout(function(){addEv(s.t,s.tag,s.msg);setLCD(s.l[0],s.l[1],s.l[2]);},i*380);
+  });
+  setTimeout(function(){blinkLED(0,8);},steps.length*380+100);
+}
+
+// ── MAIN LOOP ────────────────────────────────────────────────
+function loop(){
+  requestAnimationFrame(loop);
+  // Smooth camera
+  if(rotOn) targetAngle+=0.007;
+  camAngle+=(targetAngle-camAngle)*0.08;
+  camTilt +=(targetTilt -camTilt )*0.08;
+  camZoom +=(targetZoom -camZoom )*0.08;
+  panX    +=(tpanX-panX)*0.08;
+  panY    +=(tpanY-panY)*0.08;
+  draw();
+}
+
+// ── START ─────────────────────────────────────────────────────
+// Init wallet display from localStorage (synced with user.html)
+document.getElementById('pwb').textContent=walBal.toLocaleString('en-IN');
+var _nwb=document.getElementById('nwb'); if(_nwb) _nwb.textContent=walBal.toLocaleString('en-IN');
+var _kbd=document.getElementById('kbd'); if(_kbd) _kbd.textContent=khtBal.toLocaleString('en-IN');
+var _qwb=document.getElementById('qr-wb'); if(_qwb) _qwb.textContent=walBal.toLocaleString('en-IN');
+var _qwb2=document.getElementById('qr-wb2'); if(_qwb2) _qwb2.textContent=walBal.toLocaleString('en-IN');
+setTimeout(function(){bootSeq();},500);
+selComp('box');
+// Show real stats on LCD after boot
+setTimeout(function(){
+  var sc=calcScore();
+  setLCD('SPECTRA BOX v1.0','Score:'+sc.score+' Txns:'+sc.txns,'lavish@spectra | Delhi');
+},4000);
+loop();
+
+// ── WALLET CONTROL PANEL ─────────────────────────────────────
+var walCustomAmt='';
+function openWalletPanel(){
+  document.getElementById('wal-cur').textContent='₹'+walBal.toLocaleString('en-IN');
+  walCustomAmt='';
+  document.getElementById('wal-custom').textContent='₹0';
+  openOv('ov-wallet');
+}
+function setWal(amt){
+  walBal=amt;
+  saveWallet();
+  syncAllWalletDisplays();
+  document.getElementById('wal-cur').textContent='₹'+walBal.toLocaleString('en-IN');
+  toast('💰','Wallet set to ₹'+walBal.toLocaleString('en-IN'));
+  fire('WALLET_RELOAD',{amount:walBal,balance:walBal});
+  addEv('sys','WALLET','Balance set to ₹'+walBal.toLocaleString('en-IN'));
+  setLCD('WALLET RELOADED','₹'+walBal.toLocaleString('en-IN'),'Ready for tests');
+}
+function walI(d){
+  if(walCustomAmt.length>=7)return;
+  walCustomAmt+=d;
+  document.getElementById('wal-custom').textContent='₹'+parseInt(walCustomAmt||'0').toLocaleString('en-IN');
+}
+function walD(){walCustomAmt=walCustomAmt.slice(0,-1);document.getElementById('wal-custom').textContent='₹'+parseInt(walCustomAmt||'0').toLocaleString('en-IN');}
+function applyWalCustom(){
+  var amt=parseInt(walCustomAmt)||0;
+  if(amt<=0){toast('⚠️','Enter a valid amount');return;}
+  setWal(amt);
+  walCustomAmt='';
+  clov('ov-wallet');
+}
+function syncAllWalletDisplays(){
+  document.getElementById('pwb').textContent=walBal.toLocaleString('en-IN');
+  var nwb=document.getElementById('nwb'); if(nwb) nwb.textContent=walBal.toLocaleString('en-IN');
+  var qwb=document.getElementById('qr-wb'); if(qwb) qwb.textContent=walBal.toLocaleString('en-IN');
+  var qwb2=document.getElementById('qr-wb2'); if(qwb2) qwb2.textContent=walBal.toLocaleString('en-IN');
+  // Broadcast to other tabs by updating timestamp
+  localStorage.setItem('spectra_wallet', String(walBal));
+  localStorage.setItem('spectra_last_tx_ts', Date.now().toString());
+}
+</script>
+</body>
+</html>

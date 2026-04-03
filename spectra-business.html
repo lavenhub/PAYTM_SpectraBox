@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Spectra Box – Business Dashboard</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap');
+
+  :root {
+    --bg: #06080f;
+    --surface: #0d1017;
+    --card: #121620;
+    --border: #1e2535;
+    --accent: #4f8ef7;
+    --accent2: #00d4aa;
+    --accent3: #ff6b6b;
+    --warn: #ffa502;
+    --text: #e8eaf6;
+    --muted: #6b7a99;
+    --success: #00d4aa;
+    --danger: #ff4757;
+    --gold: #ffd700;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+  }
+
+  .scanline-bg {
+    position: fixed; inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(79,142,247,0.01) 2px,
+      rgba(79,142,247,0.01) 4px
+    );
+    pointer-events: none; z-index: 0;
+  }
+
+  header {
+    position: sticky; top: 0; z-index: 50;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 1rem 2rem;
+    background: rgba(6,8,15,0.95);
+    border-bottom: 1px solid var(--border);
+    backdrop-filter: blur(16px);
+  }
+
+  .logo {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.4rem; font-weight: 800;
+    background: linear-gradient(135deg, #4f8ef7, #00d4aa);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .live-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--success);
+    animation: blink 1.5s ease infinite;
+    display: inline-block; margin-right: 6px;
+  }
+
+  @keyframes blink {
+    0%,100% { opacity: 1; } 50% { opacity: 0.2; }
+  }
+
+  .badge {
+    display: inline-flex; align-items: center;
+    background: rgba(0,212,170,0.1);
+    border: 1px solid rgba(0,212,170,0.25);
+    color: var(--success);
+    padding: 4px 12px; border-radius: 20px;
+    font-size: 0.75rem; font-weight: 500;
+  }
+
+  main {
+    position: relative; z-index: 1;
+    max-width: 960px; margin: 0 auto;
+    padding: 2rem 1.5rem;
+  }
+
+  .stats-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(160px,1fr));
+    gap: 12px; margin-bottom: 2rem;
+  }
+
+  .stat-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 1.2rem;
+    position: relative; overflow: hidden;
+  }
+
+  .stat-card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--accent-top, var(--accent));
+  }
+
+  .stat-label {
+    font-size: 0.75rem; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.06em;
+    margin-bottom: 6px;
+  }
+
+  .stat-value {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.8rem; font-weight: 800;
+    color: var(--text);
+  }
+
+  .stat-sub {
+    font-size: 0.75rem; color: var(--muted); margin-top: 2px;
+  }
+
+  /* CREDIT SCORE */
+  .score-section {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .score-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 1.2rem;
+  }
+
+  .score-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 1rem; font-weight: 700;
+  }
+
+  .blockchain-badge {
+    display: flex; align-items: center; gap: 6px;
+    background: rgba(255,215,0,0.08);
+    border: 1px solid rgba(255,215,0,0.25);
+    border-radius: 8px;
+    padding: 4px 10px;
+    font-size: 0.72rem; color: var(--gold);
+    font-family: 'DM Mono', monospace;
+  }
+
+  .score-gauge-wrap {
+    display: flex; align-items: center; gap: 2rem;
+  }
+
+  .gauge-ring {
+    position: relative; flex-shrink: 0;
+    width: 120px; height: 120px;
+  }
+
+  .gauge-ring svg { transform: rotate(-90deg); }
+
+  .gauge-center {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+  }
+
+  .gauge-score {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.6rem; font-weight: 800;
+    color: var(--text);
+  }
+
+  .gauge-label {
+    font-size: 0.65rem; color: var(--muted);
+    text-align: center;
+  }
+
+  .score-factors { flex: 1; }
+  .factor-row {
+    margin-bottom: 10px;
+  }
+  .factor-label {
+    display: flex; justify-content: space-between;
+    font-size: 0.8rem; color: var(--muted);
+    margin-bottom: 4px;
+  }
+  .factor-bar-bg {
+    height: 6px; background: var(--border);
+    border-radius: 3px; overflow: hidden;
+  }
+  .factor-bar {
+    height: 100%; border-radius: 3px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    transition: width 0.8s ease;
+  }
+
+  .loan-prompt {
+    margin-top: 1.2rem;
+    background: rgba(79,142,247,0.06);
+    border: 1px solid rgba(79,142,247,0.2);
+    border-radius: 10px;
+    padding: 12px 16px;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .loan-text { font-size: 0.85rem; color: var(--text); }
+  .loan-amount { color: var(--accent2); font-weight: 700; }
+
+  .btn-sm {
+    background: var(--accent);
+    color: white; border: none;
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.82rem;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: opacity 0.2s;
+  }
+
+  .btn-sm:hover { opacity: 0.85; }
+
+  /* BLOCKCHAIN HASH */
+  .hash-row {
+    display: flex; align-items: center; gap: 8px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--muted);
+    margin-top: 0.75rem;
+    padding: 8px 12px;
+    background: var(--surface);
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+    word-break: break-all;
+  }
+
+  /* TX LOG */
+  .log-section {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+
+  .log-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 1.2rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .log-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 1rem; font-weight: 700;
+  }
+
+  .filter-tabs {
+    display: flex; gap: 6px;
+  }
+
+  .tab {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    transition: all 0.2s;
+  }
+
+  .tab.active {
+    background: rgba(79,142,247,0.15);
+    border-color: rgba(79,142,247,0.4);
+    color: var(--accent);
+  }
+
+  #tx-list { max-height: 400px; overflow-y: auto; }
+
+  .tx-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 1.5rem;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.15s;
+    animation: fadeIn 0.3s ease;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateX(-10px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  .tx-row:hover { background: rgba(255,255,255,0.02); }
+  .tx-row:last-child { border-bottom: none; }
+
+  .tx-icon {
+    width: 36px; height: 36px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem; flex-shrink: 0;
+  }
+
+  .tx-info { flex: 1; }
+  .tx-type { font-size: 0.88rem; font-weight: 500; }
+  .tx-meta { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+
+  .tx-amount {
+    font-family: 'Syne', sans-serif;
+    font-size: 1rem; font-weight: 700;
+    text-align: right;
+  }
+
+  .tx-time {
+    font-size: 0.7rem; color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    white-space: nowrap;
+  }
+
+  /* LIVE ALERT */
+  .live-alert {
+    position: fixed; top: 80px; right: 1.5rem;
+    z-index: 200;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px 18px;
+    max-width: 300px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    transform: translateX(120%);
+    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .live-alert.show { transform: translateX(0); }
+  .alert-title { font-weight: 600; font-size: 0.9rem; margin-bottom: 4px; }
+  .alert-sub { font-size: 0.8rem; color: var(--muted); }
+
+  .section-label {
+    font-family: 'Syne', sans-serif;
+    font-size: 0.8rem; font-weight: 700;
+    color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.08em;
+    margin-bottom: 0.75rem;
+  }
+
+  .voice-bar {
+    display: none;
+    align-items: center; gap: 4px;
+    padding: 5px 10px;
+    background: rgba(79,142,247,0.1);
+    border: 1px solid rgba(79,142,247,0.3);
+    border-radius: 20px;
+    font-size: 0.72rem;
+    color: var(--accent);
+  }
+
+  .voice-bar.active { display: flex; }
+  .vbar { width: 3px; border-radius: 2px; background: var(--accent); animation: vbar 0.6s ease infinite alternate; }
+  .vbar:nth-child(2) { animation-delay: 0.1s; height: 8px; }
+  .vbar:nth-child(3) { animation-delay: 0.2s; height: 14px; }
+  .vbar:nth-child(4) { animation-delay: 0.15s; height: 10px; }
+  .vbar:nth-child(5) { animation-delay: 0.05s; height: 6px; }
+  @keyframes vbar { from { height: 4px; } to { height: 16px; } }
+
+  .empty-state {
+    text-align: center; padding: 3rem;
+    color: var(--muted); font-size: 0.9rem;
+  }
+
+  .empty-icon { font-size: 2rem; margin-bottom: 0.5rem; }
+
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .khatta-total {
+    padding: 1rem 1.5rem;
+    display: flex; justify-content: space-between; align-items: center;
+    border-top: 1px solid var(--border);
+    font-size: 0.88rem;
+  }
+
+  .khatta-total-amt {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.1rem; font-weight: 700;
+    color: var(--warn);
+  }
+</style>
+</head>
+<body>
+
+<div class="scanline-bg"></div>
+
+<header>
+  <div class="logo">⬡ Spectra</div>
+  <div style="display:flex;align-items:center;gap:12px;">
+    <div class="voice-bar" id="voice-indicator">
+      <div class="vbar"></div><div class="vbar"></div><div class="vbar"></div><div class="vbar"></div><div class="vbar"></div>
+      Speaking…
+    </div>
+    <div class="badge"><span class="live-dot"></span> Business Dashboard</div>
+  </div>
+</header>
+
+<main>
+  <!-- STATS -->
+  <div class="section-label">Today's Overview</div>
+  <div class="stats-grid" id="stats-grid">
+    <div class="stat-card" style="--accent-top: var(--accent2);">
+      <div class="stat-label">Total Revenue</div>
+      <div class="stat-value" id="stat-revenue">₹0</div>
+      <div class="stat-sub">All payments today</div>
+    </div>
+    <div class="stat-card" style="--accent-top: var(--warn);">
+      <div class="stat-label">Khatta (Udhaar)</div>
+      <div class="stat-value" id="stat-khatta">₹0</div>
+      <div class="stat-sub">Total outstanding</div>
+    </div>
+    <div class="stat-card" style="--accent-top: var(--accent);">
+      <div class="stat-label">Transactions</div>
+      <div class="stat-value" id="stat-count">0</div>
+      <div class="stat-sub">Completed today</div>
+    </div>
+    <div class="stat-card" style="--accent-top: #a259ff;">
+      <div class="stat-label">NFC Payments</div>
+      <div class="stat-value" id="stat-nfc">0</div>
+      <div class="stat-sub">Offline taps</div>
+    </div>
+  </div>
+
+  <!-- CREDIT SCORE -->
+  <div class="section-label">Business Credit Score</div>
+  <div class="score-section">
+    <div class="score-header">
+      <div class="score-title">Spectra Credit Intelligence</div>
+      <div class="blockchain-badge">⛓ Blockchain Verified • <span id="block-num">Block #0</span></div>
+    </div>
+
+    <div class="score-gauge-wrap">
+      <div class="gauge-ring">
+        <svg viewBox="0 0 120 120" width="120" height="120">
+          <circle cx="60" cy="60" r="52" fill="none" stroke="#1e2535" stroke-width="10"/>
+          <circle cx="60" cy="60" r="52" fill="none"
+            stroke="url(#scoreGrad)"
+            stroke-width="10"
+            stroke-linecap="round"
+            stroke-dasharray="326.7"
+            stroke-dashoffset="326.7"
+            id="score-arc"
+            style="transition: stroke-dashoffset 1.2s cubic-bezier(0.34,1.56,0.64,1);"
+          />
+          <defs>
+            <linearGradient id="scoreGrad" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stop-color="#4f8ef7"/>
+              <stop offset="100%" stop-color="#00d4aa"/>
+            </linearGradient>
+          </defs>
+        </svg>
+        <div class="gauge-center">
+          <div class="gauge-score" id="gauge-score-num">—</div>
+          <div class="gauge-label" id="gauge-label">No data yet</div>
+        </div>
+      </div>
+
+      <div class="score-factors">
+        <div class="factor-row">
+          <div class="factor-label"><span>Payment Frequency</span><span id="f1-val">0%</span></div>
+          <div class="factor-bar-bg"><div class="factor-bar" id="f1" style="width:0%"></div></div>
+        </div>
+        <div class="factor-row">
+          <div class="factor-label"><span>Average Order Value</span><span id="f2-val">0%</span></div>
+          <div class="factor-bar-bg"><div class="factor-bar" id="f2" style="width:0%"></div></div>
+        </div>
+        <div class="factor-row">
+          <div class="factor-label"><span>Khatta Recovery Rate</span><span id="f3-val">0%</span></div>
+          <div class="factor-bar-bg"><div class="factor-bar" id="f3" style="width:0%"></div></div>
+        </div>
+        <div class="factor-row">
+          <div class="factor-label"><span>NFC Usage</span><span id="f4-val">0%</span></div>
+          <div class="factor-bar-bg"><div class="factor-bar" id="f4" style="width:0%"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="hash-row" id="block-hash">
+      ⛓ Awaiting first transaction to generate blockchain record…
+    </div>
+
+    <div class="loan-prompt" id="loan-prompt" style="display:none;">
+      <div class="loan-text">
+        🎉 Your business qualifies for a Spectra Business Loan up to <span class="loan-amount" id="loan-amt">₹0</span>
+      </div>
+      <button class="btn-sm">Apply Now →</button>
+    </div>
+  </div>
+
+  <!-- TX LOG -->
+  <div class="section-label">Transaction Log</div>
+  <div class="log-section">
+    <div class="log-header">
+      <div class="log-title">Live Feed</div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <div class="filter-tabs">
+          <div class="tab active" onclick="filterTx('all',this)">All</div>
+          <div class="tab" onclick="filterTx('pay',this)">Pay</div>
+          <div class="tab" onclick="filterTx('khatta',this)">Khatta</div>
+          <div class="tab" onclick="filterTx('nfc',this)">NFC</div>
+        </div>
+        <button class="btn-sm" style="background:transparent;border:1px solid var(--border);color:var(--muted);font-size:0.72rem;" onclick="clearAll()">Clear</button>
+      </div>
+    </div>
+    <div id="tx-list">
+      <div class="empty-state" id="empty-msg">
+        <div class="empty-icon">📊</div>
+        <div>No transactions yet</div>
+        <div style="font-size:0.78rem;margin-top:4px;">Open the <strong>User Panel</strong> to make a payment</div>
+      </div>
+    </div>
+    <div class="khatta-total">
+      <span style="color:var(--muted);font-size:0.82rem;">Total Khatta Outstanding</span>
+      <span class="khatta-total-amt">₹<span id="khatta-total-bottom">0</span></span>
+    </div>
+  </div>
+</main>
+
+<!-- LIVE ALERT -->
+<div class="live-alert" id="live-alert">
+  <div class="alert-title" id="alert-title">New payment received</div>
+  <div class="alert-sub" id="alert-sub"></div>
+</div>
+
+<!-- NAV BAR -->
+<div style="position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);background:var(--card);border:1px solid var(--border);border-radius:10px;padding:6px 14px;display:flex;gap:8px;z-index:100">
+  <a href="spectra-user.html" style="color:var(--accent2);font-size:11px;font-family:'Syne',sans-serif;font-weight:700;text-decoration:none;padding:4px 10px;border-radius:6px;transition:all .2s" onmouseover="this.style.background='rgba(0,212,170,.1)'" onmouseout="this.style.background='transparent'">👤 User</a>
+  <span style="color:var(--accent);font-size:11px;font-family:'Syne',sans-serif;font-weight:700;padding:4px 10px;">📊 Business</span>
+  <a href="spectra_box_3d.html" style="color:var(--muted);font-size:11px;font-family:'Syne',sans-serif;font-weight:700;text-decoration:none;padding:4px 10px;border-radius:6px;transition:all .2s" onmouseover="this.style.background='rgba(255,255,255,.05)'" onmouseout="this.style.background='transparent'">⬡ 3D Sim</a>
+</div>
+
+<script>
+// ── UNIFIED STORAGE KEYS ──────────────────────────────────────
+const STORAGE_KEY_TXNS = 'spectra_txns';
+const STORAGE_KEY_KHATA = 'spectra_khata';
+const STORAGE_KEY_LAST_TX = 'spectra_last_tx';
+const STORAGE_KEY_LAST_TX_TS = 'spectra_last_tx_ts';
+const STORAGE_KEY_EVENT = 'spectra_event';
+
+let allTx = [];
+let currentFilter = 'all';
+let totalRevenue = 0;
+let totalKhatta = 0;
+let nfcCount = 0;
+let txCount = 0;
+
+// ── LISTEN FOR EVENTS FROM OTHER TABS ────────────────────────
+window.addEventListener('storage', function(e) {
+  // Sync khatta balance from user/simulation
+  if (e.key === STORAGE_KEY_KHATA && e.newValue) {
+    const kht = parseInt(e.newValue) || 0;
+    document.getElementById('stat-khatta').textContent = '₹' + kht.toLocaleString('en-IN');
+    document.getElementById('khatta-total-bottom').textContent = kht.toLocaleString('en-IN');
+  }
+  
+  // Check for new transactions from user panel or simulation
+  if (e.key === STORAGE_KEY_LAST_TX_TS && e.newValue) {
+    try {
+      const ev = JSON.parse(localStorage.getItem(STORAGE_KEY_LAST_TX) || 'null');
+      if (ev && ev.txType) {
+        // Check if we already processed this
+        const txKey = ev.txType + '_' + ev.amt + '_' + ev.time;
+        if (!window._lastProcessedTx || window._lastProcessedTx !== txKey) {
+          window._lastProcessedTx = txKey;
+          if (ev.txType !== 'topup') {
+            addTransaction(ev.txType, ev.amt, ev.name, ev.time);
+          }
+        }
+      }
+    } catch(e) {}
+  }
+  
+  // Also listen for simulation events
+  if (e.key === STORAGE_KEY_EVENT && e.newValue) {
+    try {
+      const ev = JSON.parse(e.newValue);
+      if (ev.type === 'PAYMENT_SUCCESS') {
+        const txKey = 'sim_pay_' + ev.data.amount + '_' + ev.timestamp;
+        if (!window._lastProcessedTx || window._lastProcessedTx !== txKey) {
+          window._lastProcessedTx = txKey;
+          addTransaction('pay', ev.data.amount, ev.data.user || 'Customer', new Date(ev.timestamp).toLocaleTimeString());
+        }
+      }
+    } catch(e) {}
+  }
+});
+
+function recalcScore() {
+  if (txCount === 0) return;
+
+  const f1 = Math.min(100, txCount * 15);
+  const f2 = Math.min(100, Math.round(totalRevenue / Math.max(txCount, 1) / 20));
+  const f3 = totalKhatta === 0 ? 100 : Math.min(100, Math.round((totalRevenue / (totalRevenue + totalKhatta)) * 100));
+  const f4 = Math.min(100, nfcCount * 25);
+
+  const score = Math.round((f1 * 0.35 + f2 * 0.30 + f3 * 0.25 + f4 * 0.10) * 8.5 + 300);
+  const cappedScore = Math.min(900, score);
+
+  document.getElementById('f1').style.width = f1 + '%';
+  document.getElementById('f2').style.width = f2 + '%';
+  document.getElementById('f3').style.width = f3 + '%';
+  document.getElementById('f4').style.width = f4 + '%';
+  document.getElementById('f1-val').textContent = f1 + '%';
+  document.getElementById('f2-val').textContent = f2 + '%';
+  document.getElementById('f3-val').textContent = f3 + '%';
+  document.getElementById('f4-val').textContent = f4 + '%';
+
+  document.getElementById('gauge-score-num').textContent = cappedScore;
+
+  let label = 'Poor', color = '#ff4757';
+  if (cappedScore >= 750) { label = 'Excellent'; color = '#00d4aa'; }
+  else if (cappedScore >= 650) { label = 'Good'; color = '#4f8ef7'; }
+  else if (cappedScore >= 550) { label = 'Fair'; color = '#ffa502'; }
+
+  document.getElementById('gauge-label').textContent = label;
+  document.getElementById('gauge-label').style.color = color;
+
+  const circumference = 326.7;
+  const pct = (cappedScore - 300) / 600;
+  const offset = circumference * (1 - Math.min(pct, 1));
+  document.getElementById('score-arc').style.strokeDashoffset = offset;
+
+  // Blockchain hash
+  const fakeHash = generateHash(cappedScore + txCount + totalRevenue);
+  const blockNum = txCount * 3 + 1000;
+  document.getElementById('block-num').textContent = 'Block #' + blockNum;
+  document.getElementById('block-hash').innerHTML = `⛓ Hash: ${fakeHash} &nbsp;|&nbsp; Block #${blockNum} &nbsp;|&nbsp; Score: ${cappedScore} &nbsp;|&nbsp; Verified ✓`;
+
+  // Loan eligibility
+  if (cappedScore >= 600) {
+    const loanAmt = Math.round(totalRevenue * 3 / 1000) * 1000;
+    document.getElementById('loan-amt').textContent = '₹' + loanAmt.toLocaleString('en-IN');
+    document.getElementById('loan-prompt').style.display = 'flex';
+  } else {
+    document.getElementById('loan-prompt').style.display = 'none';
+  }
+}
+
+function generateHash(seed) {
+  let h = seed * 2654435761;
+  const chars = '0123456789abcdef';
+  let hash = '0x';
+  for (let i = 0; i < 40; i++) {
+    h = (h ^ (h >>> 16)) * 0x45d9f3b | 0;
+    hash += chars[Math.abs(h) % 16];
+  }
+  return hash.substring(0, 18) + '…';
+}
+
+function addTransaction(txType, amt, name, time) {
+  const icons = { pay: { emoji: '💸', bg: 'rgba(0,212,170,0.1)', color: '#00d4aa', label: 'UPI Payment', dir: '+' },
+                  khatta: { emoji: '📒', bg: 'rgba(255,165,2,0.1)', color: '#ffa502', label: 'Khatta Added', dir: 'credit' },
+                  nfc: { emoji: '📲', bg: 'rgba(108,99,255,0.1)', color: '#6c63ff', label: 'NFC Payment', dir: '+' } };
+  const info = icons[txType] || icons.pay;
+
+  const tx = { txType, amt, name, time, info };
+  allTx.unshift(tx);
+
+  if (txType === 'pay' || txType === 'nfc') { totalRevenue += amt; txCount++; }
+  if (txType === 'nfc') nfcCount++;
+  if (txType === 'khatta') { totalKhatta += amt; txCount++; }
+
+  document.getElementById('stat-revenue').textContent = '₹' + totalRevenue.toLocaleString('en-IN');
+  document.getElementById('stat-khatta').textContent = '₹' + totalKhatta.toLocaleString('en-IN');
+  document.getElementById('stat-count').textContent = txCount;
+  document.getElementById('stat-nfc').textContent = nfcCount;
+  document.getElementById('khatta-total-bottom').textContent = totalKhatta.toLocaleString('en-IN');
+
+  renderList();
+  recalcScore();
+  showAlert(txType, amt, name);
+  speakNotification(txType, amt, name);
+}
+
+function renderList() {
+  const list = document.getElementById('tx-list');
+  const emptyMsg = document.getElementById('empty-msg');
+
+  const filtered = currentFilter === 'all' ? allTx : allTx.filter(t => t.txType === currentFilter);
+
+  if (filtered.length === 0) {
+    list.innerHTML = '';
+    if (!document.getElementById('empty-msg')) {
+      list.innerHTML = '<div class="empty-state" id="empty-msg"><div class="empty-icon">📊</div><div>No transactions yet</div></div>';
+    }
+    return;
+  }
+
+  list.innerHTML = filtered.map((tx, i) => `
+    <div class="tx-row">
+      <div class="tx-icon" style="background:${tx.info.bg};">${tx.info.emoji}</div>
+      <div class="tx-info">
+        <div class="tx-type">${tx.info.label}</div>
+        <div class="tx-meta">${tx.name} • Spectra Box</div>
+      </div>
+      <div>
+        <div class="tx-amount" style="color:${tx.info.color};">
+          ${tx.info.dir === '+' ? '+' : ''}₹${tx.amt.toLocaleString('en-IN')}
+        </div>
+        <div class="tx-time">${tx.time}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function filterTx(type, el) {
+  currentFilter = type;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  renderList();
+}
+
+function clearAll() {
+  allTx = []; totalRevenue = 0; totalKhatta = 0; nfcCount = 0; txCount = 0;
+  renderList();
+  document.getElementById('stat-revenue').textContent = '₹0';
+  document.getElementById('stat-khatta').textContent = '₹0';
+  document.getElementById('stat-count').textContent = '0';
+  document.getElementById('stat-nfc').textContent = '0';
+  document.getElementById('khatta-total-bottom').textContent = '0';
+  document.getElementById('gauge-score-num').textContent = '—';
+  document.getElementById('gauge-label').textContent = 'No data yet';
+  document.getElementById('score-arc').style.strokeDashoffset = '326.7';
+  document.getElementById('block-hash').innerHTML = '⛓ Awaiting first transaction to generate blockchain record…';
+  document.getElementById('loan-prompt').style.display = 'none';
+  ['f1','f2','f3','f4'].forEach(f => { document.getElementById(f).style.width = '0%'; document.getElementById(f+'-val').textContent = '0%'; });
+  localStorage.removeItem(STORAGE_KEY_TXNS);
+  localStorage.removeItem(STORAGE_KEY_KHATA);
+}
+
+function showAlert(txType, amt, name) {
+  const alertEl = document.getElementById('live-alert');
+  const labels = { pay: '💸 Payment Received', khatta: '📒 Khatta Added', nfc: '📲 NFC Payment' };
+  document.getElementById('alert-title').textContent = labels[txType] || 'Payment';
+  document.getElementById('alert-sub').textContent = `${name} • ₹${amt.toLocaleString('en-IN')} • Just now`;
+  alertEl.classList.add('show');
+  setTimeout(() => alertEl.classList.remove('show'), 3500);
+}
+
+function speakNotification(txType, amt, name) {
+  if (!window.speechSynthesis) return;
+  const vi = document.getElementById('voice-indicator');
+  let text = '';
+  if (txType === 'pay') text = `${name} ne aapko ${amt} rupaye diye`;
+  else if (txType === 'khatta') text = `${name} ke account mein ${amt} rupaye add hue`;
+  else if (txType === 'nfc') text = `${name} ne NFC se ${amt} rupaye diye`;
+
+  vi.classList.add('active');
+  const utt = new SpeechSynthesisUtterance(text);
+  utt.lang = 'hi-IN';
+  utt.rate = 0.9;
+  utt.onend = () => vi.classList.remove('active');
+  window.speechSynthesis.speak(utt);
+}
+
+// Poll for new transactions from User page via localStorage
+let lastSeenTs = 0;
+
+function pollForTx() {
+  const ts = parseInt(localStorage.getItem('spectra_last_tx_ts') || '0');
+  if (ts > lastSeenTs) {
+    lastSeenTs = ts;
+    try {
+      const ev = JSON.parse(localStorage.getItem('spectra_last_tx') || 'null');
+      if (ev) addTransaction(ev.txType, ev.amt, ev.name, ev.time);
+    } catch(e) {}
+  }
+}
+
+setInterval(pollForTx, 800);
+
+// Demo transaction button
+const demoBtn = document.createElement('div');
+demoBtn.style.cssText = 'position:fixed;bottom:1.5rem;left:1.5rem;z-index:100;display:flex;flex-direction:column;gap:8px;';
+demoBtn.innerHTML = `
+  <button onclick="addTransaction('pay',350,'Lavish',new Date().toLocaleTimeString())" style="background:rgba(0,212,170,0.15);border:1px solid rgba(0,212,170,0.3);color:#00d4aa;padding:8px 14px;border-radius:8px;cursor:pointer;font-size:0.8rem;font-family:DM Sans,sans-serif;">+ Demo Pay</button>
+  <button onclick="addTransaction('khatta',200,'Lavish',new Date().toLocaleTimeString())" style="background:rgba(255,165,2,0.1);border:1px solid rgba(255,165,2,0.3);color:#ffa502;padding:8px 14px;border-radius:8px;cursor:pointer;font-size:0.8rem;font-family:DM Sans,sans-serif;">+ Demo Khatta</button>
+  <button onclick="addTransaction('nfc',150,'Lavish',new Date().toLocaleTimeString())" style="background:rgba(108,99,255,0.1);border:1px solid rgba(108,99,255,0.3);color:#a78bfa;padding:8px 14px;border-radius:8px;cursor:pointer;font-size:0.8rem;font-family:DM Sans,sans-serif;">+ Demo NFC</button>
+`;
+document.body.appendChild(demoBtn);
+</script>
+</body>
+</html>
