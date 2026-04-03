@@ -2,6 +2,8 @@
 
 **Spectra-Trust** is a ruggedized smart payment terminal designed to bridge the credit gap for unbanked micro-merchants. By combining **ESP32-S3 Edge-AI** with biometric **liveness detection**, it transforms noisy cash transactions into a verified "Digital Khata" for formal credit scoring.
 
+![Spectra-Box](Spectra-Box_3D-model.png)
+
 ## Key Features
 
 * **Biometric Liveness Verification:** Prevents payment fraud using **Edge-AI blink detection** to ensure the physical presence of the payer.
