@@ -4,7 +4,7 @@
 
 ## 🚀 Demo
 
-🔗 Live Demo : [https://youtu.be/Pf1eIoQd_bY?si=q2HPZFE3DwId5BUF](url)
+🔗 Live Demo: [Watch Demo Video](https://youtu.be/Pf1eIoQd_bY?si=q2HPZFE3DwId5BUF)
 
 ![Spectra-Box](Spectra-Box_3D-model.png)
 
